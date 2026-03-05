@@ -1,10 +1,27 @@
 {
   "name": "idea-manager",
   "version": "0.1.0",
-  "private": true,
-  "bin": {
-    "im": "./src/cli.ts"
+  "description": "AI 기반 브레인스토밍 → 구조화 → 프롬프트 생성 도구. MCP Server 내장.",
+  "keywords": ["brainstorm", "ai", "mcp", "idea", "structuring", "prompt"],
+  "author": "navskh",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/navskh/IM.git"
   },
+  "bin": {
+    "im": "./bin/im.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "public/",
+    "next.config.ts",
+    "tsconfig.json",
+    "postcss.config.mjs",
+    "tailwind.config.ts",
+    "package.json"
+  ],
   "scripts": {
     "dev": "next dev -p 3456",
     "build": "next build",
@@ -21,7 +38,8 @@
     "next": "16.1.6",
     "open": "^11.0.0",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "tsx": "^4.21.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -32,7 +50,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
-    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }
