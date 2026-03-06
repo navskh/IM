@@ -106,15 +106,14 @@ claude mcp add idea-manager -- npx -y idea-manager mcp
 | Frontend | Next.js 15, React 19, TypeScript, Tailwind CSS 4 |
 | Backend | Next.js API Routes |
 | Database | SQLite (better-sqlite3) |
-| AI | Anthropic Claude (Agent SDK) |
+| AI | Claude CLI (구독 기반, API 키 불필요) |
 | MCP | Model Context Protocol (stdio) |
 | CLI | Commander.js |
 
-## 환경 변수
+## 요구 사항
 
-```bash
-ANTHROPIC_API_KEY=sk-ant-...  # Claude API 키 (AI 채팅/다듬기에 필요, 없어도 기본 기능은 동작)
-```
+- **Node.js** 18+
+- **Claude CLI** — AI 채팅/다듬기 기능 사용 시 필요 (Claude 구독 필요). 없어도 태스크 관리, 프롬프트 작성 등 기본 기능은 정상 동작합니다.
 
 ## 라이선스
 
