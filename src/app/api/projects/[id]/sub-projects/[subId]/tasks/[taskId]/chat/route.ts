@@ -3,6 +3,7 @@ import { getTaskConversations, addTaskConversation } from '@/lib/db/queries/task
 import { getTask } from '@/lib/db/queries/tasks';
 import { getTaskPrompt } from '@/lib/db/queries/task-prompts';
 import { getBrainstorm } from '@/lib/db/queries/brainstorms';
+import { getProject } from '@/lib/db/queries/projects';
 import { runClaude } from '@/lib/ai/client';
 
 export async function GET(
@@ -37,9 +38,12 @@ export async function POST(
   const history = getTaskConversations(taskId);
   const prompt = getTaskPrompt(taskId);
   const brainstorm = getBrainstorm(projectId);
+  const project = getProject(projectId);
+
+  const aiPolicy = project?.ai_context ? `\n\nProject AI Policy:\n${project.ai_context}` : '';
 
   const systemPrompt = `You are a helpful assistant helping refine a development task. Respond in Korean. Be concise.
-
+${aiPolicy}
 Task: ${task.title}
 Description: ${task.description}
 Status: ${task.status}
@@ -52,9 +56,15 @@ ${brainstorm?.content ? `\nBrainstorming context:\n${brainstorm.content.slice(0,
 
   try {
     const aiResponse = await runClaude(`${systemPrompt}\n\nConversation:\n${conversationText}`);
-    const aiMsg = addTaskConversation(taskId, 'assistant', aiResponse.trim());
+    const trimmed = aiResponse.trim();
+    if (!trimmed) {
+      const fallbackMsg = addTaskConversation(taskId, 'assistant', '(AI 응답을 생성하지 못했습니다. 다시 시도해주세요.)');
+      return NextResponse.json({ userMessage: userMsg, aiMessage: fallbackMsg });
+    }
+    const aiMsg = addTaskConversation(taskId, 'assistant', trimmed);
     return NextResponse.json({ userMessage: userMsg, aiMessage: aiMsg });
   } catch {
-    return NextResponse.json({ error: 'AI response failed' }, { status: 500 });
+    const errorMsg = addTaskConversation(taskId, 'assistant', '(AI 호출에 실패했습니다. Claude CLI가 설치되어 있는지 확인해주세요.)');
+    return NextResponse.json({ userMessage: userMsg, aiMessage: errorMsg });
   }
 }

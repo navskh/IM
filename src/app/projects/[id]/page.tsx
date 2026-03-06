@@ -7,6 +7,7 @@ import ProjectTree from '@/components/task/ProjectTree';
 import TaskDetail from '@/components/task/TaskDetail';
 import DirectoryPicker from '@/components/DirectoryPicker';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import AiPolicyModal from '@/components/ui/AiPolicyModal';
 import type { ISubProject, ITask, TaskStatus, ISubProjectWithStats } from '@/types';
 
 interface IProject {
@@ -14,6 +15,7 @@ interface IProject {
   name: string;
   description: string;
   project_path: string | null;
+  ai_context: string;
 }
 
 function WorkspaceInner({ id }: { id: string }) {
@@ -32,10 +34,11 @@ function WorkspaceInner({ id }: { id: string }) {
   const [showAddSub, setShowAddSub] = useState(false);
   const [showBrainstorm, setShowBrainstorm] = useState(true);
   const [newSubName, setNewSubName] = useState('');
+  const [showAiPolicy, setShowAiPolicy] = useState(false);
 
   // Resizable panel widths
-  const [leftWidth, setLeftWidth] = useState(280);
-  const [centerWidth, setCenterWidth] = useState(280);
+  const [leftWidth, setLeftWidth] = useState(500);
+  const [centerWidth, setCenterWidth] = useState(500);
   const containerRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef<'left' | 'center' | null>(null);
   const startXRef = useRef(0);
@@ -221,6 +224,18 @@ function WorkspaceInner({ id }: { id: string }) {
     }
   };
 
+  const handleSaveAiPolicy = async (aiContext: string) => {
+    const res = await fetch(`/api/projects/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ai_context: aiContext }),
+    });
+    if (res.ok) {
+      setProject(await res.json());
+      setShowAiPolicy(false);
+    }
+  };
+
   // Keyboard shortcuts (use e.code for Korean IME compatibility)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -289,6 +304,16 @@ function WorkspaceInner({ id }: { id: string }) {
           )}
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowAiPolicy(true)}
+            className={`px-3 py-1.5 text-xs border rounded-md transition-colors ${
+              project.ai_context
+                ? 'bg-accent/15 text-accent border-accent/30 hover:bg-accent/25'
+                : 'bg-muted hover:bg-card-hover text-muted-foreground border-border'
+            }`}
+          >
+            AI Policy{project.ai_context ? ' *' : ''}
+          </button>
           {!project.project_path && (
             <button
               onClick={() => setShowDirPicker(true)}
@@ -417,6 +442,13 @@ function WorkspaceInner({ id }: { id: string }) {
         variant="danger"
         onConfirm={handleConfirmAction}
         onCancel={() => setConfirmAction(null)}
+      />
+
+      <AiPolicyModal
+        open={showAiPolicy}
+        content={project.ai_context || ''}
+        onSave={handleSaveAiPolicy}
+        onClose={() => setShowAiPolicy(false)}
       />
     </div>
   );

@@ -13,7 +13,7 @@ export interface IStructuredItem {
 const CLI_PATH = 'claude';
 const DEFAULT_ARGS = ['--dangerously-skip-permissions'];
 const MODEL = 'sonnet';
-const MAX_TURNS = 1;
+const MAX_TURNS = 80;
 
 export type OnTextChunk = (text: string) => void;
 export type OnRawEvent = (event: Record<string, unknown>) => void;
@@ -24,10 +24,11 @@ export type OnRawEvent = (event: Record<string, unknown>) => void;
  */
 export function runClaude(prompt: string, onText?: OnTextChunk, onRawEvent?: OnRawEvent): Promise<string> {
   return new Promise((resolve, reject) => {
+    const useStreamJson = !!(onText || onRawEvent);
     const args = [
       ...DEFAULT_ARGS,
       '--model', MODEL,
-      '--output-format', 'stream-json',
+      ...(useStreamJson ? ['--output-format', 'stream-json', '--verbose'] : ['--output-format', 'text']),
       '--max-turns', String(MAX_TURNS),
       '-p', '-',  // read prompt from stdin
     ];
@@ -57,56 +58,47 @@ export function runClaude(prompt: string, onText?: OnTextChunk, onRawEvent?: OnR
     let resultText = '';
     let stderrText = '';
 
-    proc.stdout?.on('data', (chunk: Buffer) => {
-      buffer += chunk.toString();
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
+    if (useStreamJson) {
+      // stream-json mode: parse NDJSON events
+      proc.stdout?.on('data', (chunk: Buffer) => {
+        buffer += chunk.toString();
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
 
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
-        try {
-          const parsed = JSON.parse(trimmed);
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          try {
+            const parsed = JSON.parse(trimmed);
+            onRawEvent?.(parsed);
 
-          // Emit raw event for live streaming to frontend
-          onRawEvent?.(parsed);
-
-          // content_block_delta — real-time streaming tokens (API-style)
-          if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
-            resultText += parsed.delta.text;
-            onText?.(parsed.delta.text);
-          }
-
-          // assistant — complete or incremental message
-          else if (parsed.type === 'assistant' && parsed.message?.content) {
-            let fullText = '';
-            for (const block of parsed.message.content) {
-              if (block.type === 'text') {
-                fullText += block.text;
+            if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
+              resultText += parsed.delta.text;
+              onText?.(parsed.delta.text);
+            } else if (parsed.type === 'assistant' && parsed.message?.content) {
+              let fullText = '';
+              for (const block of parsed.message.content) {
+                if (block.type === 'text') fullText += block.text;
               }
+              if (fullText.length > resultText.length) {
+                onText?.(fullText.slice(resultText.length));
+              }
+              resultText = fullText;
+            } else if (parsed.type === 'result' && parsed.result) {
+              if (parsed.result.length > resultText.length) {
+                onText?.(parsed.result.slice(resultText.length));
+              }
+              resultText = parsed.result;
             }
-            // Only emit the NEW part (handles incremental assistant messages)
-            if (fullText.length > resultText.length) {
-              const newPart = fullText.slice(resultText.length);
-              onText?.(newPart);
-            }
-            resultText = fullText;
-          }
-
-          // result — final output
-          else if (parsed.type === 'result' && parsed.result) {
-            // Emit any remaining new text from result
-            if (parsed.result.length > resultText.length) {
-              const newPart = parsed.result.slice(resultText.length);
-              onText?.(newPart);
-            }
-            resultText = parsed.result;
-          }
-        } catch {
-          // ignore non-JSON lines
+          } catch { /* ignore non-JSON */ }
         }
-      }
-    });
+      });
+    } else {
+      // text mode: stdout is the raw result
+      proc.stdout?.on('data', (chunk: Buffer) => {
+        resultText += chunk.toString();
+      });
+    }
 
     proc.stderr?.on('data', (chunk: Buffer) => {
       stderrText += chunk.toString();
@@ -117,6 +109,10 @@ export function runClaude(prompt: string, onText?: OnTextChunk, onRawEvent?: OnR
     });
 
     proc.on('exit', (code, signal) => {
+      // Clean up known CLI noise from text output
+      if (!useStreamJson) {
+        resultText = resultText.replace(/Error: Reached max turns \(\d+\)\s*/g, '').trim();
+      }
       if (code !== 0 && !resultText) {
         const detail = stderrText.slice(0, 500) || (signal ? `killed by signal ${signal}` : 'no output');
         reject(new Error(`Claude CLI exited with code ${code}: ${detail}`));

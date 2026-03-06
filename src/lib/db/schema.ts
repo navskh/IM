@@ -97,6 +97,9 @@ export function initSchema(db: Database.Database): void {
   if (!projCols.some(c => c.name === 'project_path')) {
     db.exec("ALTER TABLE projects ADD COLUMN project_path TEXT");
   }
+  if (!projCols.some(c => c.name === 'ai_context')) {
+    db.exec("ALTER TABLE projects ADD COLUMN ai_context TEXT NOT NULL DEFAULT ''");
+  }
 
   // v2 tables
   db.exec(`

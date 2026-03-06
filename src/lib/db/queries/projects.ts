@@ -30,7 +30,7 @@ export function createProject(name: string, description: string = '', projectPat
   return getProject(id)!;
 }
 
-export function updateProject(id: string, data: { name?: string; description?: string; project_path?: string | null }): IProject | undefined {
+export function updateProject(id: string, data: { name?: string; description?: string; project_path?: string | null; ai_context?: string }): IProject | undefined {
   const db = getDb();
   const project = getProject(id);
   if (!project) return undefined;
@@ -38,11 +38,12 @@ export function updateProject(id: string, data: { name?: string; description?: s
   const now = new Date().toISOString();
 
   db.prepare(
-    'UPDATE projects SET name = ?, description = ?, project_path = ?, updated_at = ? WHERE id = ?'
+    'UPDATE projects SET name = ?, description = ?, project_path = ?, ai_context = ?, updated_at = ? WHERE id = ?'
   ).run(
     data.name ?? project.name,
     data.description ?? project.description,
     data.project_path !== undefined ? data.project_path : project.project_path,
+    data.ai_context !== undefined ? data.ai_context : (project.ai_context ?? ''),
     now,
     id,
   );

@@ -3,6 +3,7 @@ export interface IProject {
   name: string;
   description: string;
   project_path: string | null;
+  ai_context: string;
   created_at: string;
   updated_at: string;
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ITaskConversation } from '@/types';
+import ReactMarkdown from 'react-markdown';
 
 export default function TaskChat({
   basePath,
@@ -79,14 +80,16 @@ export default function TaskChat({
             Ask AI to help refine your task or prompt
           </div>
         )}
-        {messages.map((msg) => (
+        {messages.filter(msg => msg.content).map((msg) => (
           <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-            <div className={`max-w-[90%] px-3 py-2 rounded-lg text-sm leading-relaxed whitespace-pre-wrap ${
+            <div className={`max-w-[90%] px-3 py-2 rounded-lg text-sm leading-relaxed ${
               msg.role === 'user'
-                ? 'bg-accent text-white rounded-br-sm'
-                : 'bg-muted text-foreground rounded-bl-sm'
+                ? 'bg-accent text-white rounded-br-sm whitespace-pre-wrap'
+                : 'bg-muted text-foreground rounded-bl-sm chat-markdown'
             }`}>
-              {msg.content}
+              {msg.role === 'assistant'
+                ? <ReactMarkdown>{msg.content}</ReactMarkdown>
+                : msg.content}
             </div>
             {msg.role === 'assistant' && (
               <button
