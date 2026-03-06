@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db/index';
-import { updateItem } from '@/lib/db/queries/items';
+import { updateItem, deleteItem } from '@/lib/db/queries/items';
 import type { IItem, ItemStatus } from '@/types';
 
 export async function GET(
@@ -48,6 +48,10 @@ export async function PUT(
     }
   }
 
+  if (body.is_pinned !== undefined) {
+    updates.is_pinned = Boolean(body.is_pinned);
+  }
+
   if (body.title !== undefined) updates.title = body.title;
   if (body.description !== undefined) updates.description = body.description;
   if (body.priority !== undefined) updates.priority = body.priority;
@@ -59,6 +63,24 @@ export async function PUT(
 
   const updated = updateItem(itemId, updates);
   return NextResponse.json(updated);
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string; itemId: string }> },
+) {
+  const { id: projectId, itemId } = await params;
+  const db = getDb();
+
+  const item = db.prepare('SELECT * FROM items WHERE id = ? AND project_id = ?')
+    .get(itemId, projectId) as IItem | undefined;
+
+  if (!item) {
+    return NextResponse.json({ error: 'Item not found' }, { status: 404 });
+  }
+
+  deleteItem(itemId);
+  return NextResponse.json({ success: true });
 }
 
 function lockChildrenRecursive(db: ReturnType<typeof getDb>, parentId: string, locked: boolean) {

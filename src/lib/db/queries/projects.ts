@@ -12,14 +12,14 @@ export function getProject(id: string): IProject | undefined {
   return db.prepare('SELECT * FROM projects WHERE id = ?').get(id) as IProject | undefined;
 }
 
-export function createProject(name: string, description: string = ''): IProject {
+export function createProject(name: string, description: string = '', projectPath?: string): IProject {
   const db = getDb();
   const id = generateId();
   const now = new Date().toISOString();
 
   db.prepare(
-    'INSERT INTO projects (id, name, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
-  ).run(id, name, description, now, now);
+    'INSERT INTO projects (id, name, description, project_path, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(id, name, description, projectPath ?? null, now, now);
 
   // Also create a default brainstorm
   const brainstormId = generateId();
@@ -30,18 +30,22 @@ export function createProject(name: string, description: string = ''): IProject 
   return getProject(id)!;
 }
 
-export function updateProject(id: string, data: { name?: string; description?: string }): IProject | undefined {
+export function updateProject(id: string, data: { name?: string; description?: string; project_path?: string | null }): IProject | undefined {
   const db = getDb();
   const project = getProject(id);
   if (!project) return undefined;
 
-  const name = data.name ?? project.name;
-  const description = data.description ?? project.description;
   const now = new Date().toISOString();
 
   db.prepare(
-    'UPDATE projects SET name = ?, description = ?, updated_at = ? WHERE id = ?'
-  ).run(name, description, now, id);
+    'UPDATE projects SET name = ?, description = ?, project_path = ?, updated_at = ? WHERE id = ?'
+  ).run(
+    data.name ?? project.name,
+    data.description ?? project.description,
+    data.project_path !== undefined ? data.project_path : project.project_path,
+    now,
+    id,
+  );
 
   return getProject(id);
 }

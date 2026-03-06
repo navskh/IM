@@ -2,6 +2,7 @@ import { runStructureWithQuestions, type IStructuredItem } from './client';
 import { replaceItems } from '../db/queries/items';
 import { getRecentConversations, addMessage } from '../db/queries/conversations';
 import { getBrainstorm } from '../db/queries/brainstorms';
+import { getProjectContextSummary } from '../db/queries/context';
 import { resolveMemos, createMemosFromQuestions } from '../db/queries/memos';
 import type { IItemTree, IMemo, IConversation } from '@/types';
 
@@ -29,8 +30,9 @@ export async function handleChatResponse(
     content: h.content,
   }));
 
-  // AI call with updated conversation context
-  const result = await runStructureWithQuestions(brainstorm.content, historyForAi);
+  // AI call with updated conversation context + project docs
+  const projectContext = getProjectContextSummary(projectId) || undefined;
+  const result = await runStructureWithQuestions(brainstorm.content, historyForAi, projectContext);
 
   // Replace items in DB
   const dbItems = mapToDbFormat(result.items as IStructuredItem[]);

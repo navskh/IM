@@ -1,6 +1,6 @@
 {
   "name": "idea-manager",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "AI 기반 브레인스토밍 → 구조화 → 프롬프트 생성 도구. MCP Server 내장.",
   "keywords": [
     "brainstorm",
@@ -37,7 +37,7 @@
     "mcp": "tsx src/cli.ts mcp"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.66",
+    "@anthropic-ai/sdk": "^0.78.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "better-sqlite3": "^12.6.2",
     "commander": "^14.0.3",

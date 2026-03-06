@@ -14,6 +14,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'name is required' }, { status: 400 });
   }
 
-  const project = createProject(name, description || '');
+  const project = createProject(name, description || '', body.project_path || undefined);
   return NextResponse.json(project, { status: 201 });
 }

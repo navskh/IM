@@ -13,7 +13,10 @@ interface Memo {
 interface EditorProps {
   projectId: string;
   onContentChange: (content: string) => void;
+  onSendMessage: (message: string) => void;
   memos?: Memo[];
+  chatLoading?: boolean;
+  onCollapse?: () => void;
 }
 
 interface PinPosition {
@@ -22,7 +25,7 @@ interface PinPosition {
   left: number;
 }
 
-export default function Editor({ projectId, onContentChange, memos = [] }: EditorProps) {
+export default function Editor({ projectId, onContentChange, onSendMessage, memos = [], chatLoading, onCollapse }: EditorProps) {
   const [content, setContent] = useState('');
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -122,9 +125,20 @@ export default function Editor({ projectId, onContentChange, memos = [] }: Edito
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-4 py-2 border-b border-border">
         <h2 className="text-sm font-medium text-muted-foreground">브레인스토밍</h2>
-        <span className="text-xs text-muted-foreground">
-          {saving ? '저장 중...' : content ? '저장됨' : ''}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">
+            {saving ? '저장 중...' : content ? '저장됨' : ''}
+          </span>
+          {onCollapse && (
+            <button
+              onClick={onCollapse}
+              className="text-muted-foreground hover:text-foreground transition-colors text-xs px-1"
+              title="접기 (B)"
+            >
+              «
+            </button>
+          )}
+        </div>
       </div>
       <div className="editor-container">
         <textarea
@@ -153,6 +167,8 @@ export default function Editor({ projectId, onContentChange, memos = [] }: Edito
                 anchorText={pin.memo.anchor_text}
                 top={pin.top}
                 left={pin.left}
+                loading={chatLoading}
+                onSendMessage={onSendMessage}
               />
             ))}
           </div>

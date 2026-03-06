@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "IM - 아이디어 매니저",
   description: "자유롭게 아이디어를 쏟아내면, AI가 구조화해드립니다",
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({

@@ -3,8 +3,9 @@
 import { Command } from 'commander';
 import { startMcpServer } from '@/lib/mcp/server';
 import { listProjects, getProject } from '@/lib/db/queries/projects';
-import { getItemTree, getItems, updateItem } from '@/lib/db/queries/items';
-import { getPrompt } from '@/lib/db/queries/prompts';
+import { getSubProjects } from '@/lib/db/queries/sub-projects';
+import { getTasksByProject, updateTask } from '@/lib/db/queries/tasks';
+import { getTaskPrompt } from '@/lib/db/queries/task-prompts';
 import type { McpToolContext } from '@/lib/mcp/tools';
 import { spawn } from 'child_process';
 import path from 'path';
@@ -18,8 +19,8 @@ const program = new Command();
 
 program
   .name('im')
-  .description('Idea Manager - AI 기반 브레인스토밍 → 구조화 → 프롬프트 생성 도구')
-  .version('0.1.0');
+  .description('Idea Manager v2 - Brainstorming to structured tasks with prompts')
+  .version('0.2.0');
 
 program
   .command('mcp')
@@ -28,10 +29,10 @@ program
     const ctx: McpToolContext = {
       listProjects,
       getProject,
-      getItemTree,
-      getItems,
-      getPrompt,
-      updateItem: (id, data) => updateItem(id, data as Parameters<typeof updateItem>[1]),
+      getSubProjects,
+      getTasksByProject,
+      getTaskPrompt,
+      updateTask: (id, data) => updateTask(id, data as Parameters<typeof updateTask>[1]),
     };
 
     await startMcpServer(ctx);
@@ -43,7 +44,7 @@ program
   .option('-p, --port <port>', 'Port number', '3456')
   .action(async (opts) => {
     const port = opts.port;
-    console.log(`\n  IM - 아이디어 매니저`);
+    console.log(`\n  IM - Idea Manager v2`);
     console.log(`  Starting on http://localhost:${port}\n`);
 
     const nextBin = path.join(PKG_ROOT, 'node_modules', '.bin', 'next');
@@ -58,7 +59,6 @@ program
       process.exit(1);
     });
 
-    // 서버 시작 후 브라우저 오픈
     setTimeout(async () => {
       try {
         const open = (await import('open')).default;

@@ -1,0 +1,134 @@
+'use client';
+
+import { useState, useEffect, useRef, useCallback } from 'react';
+import type { ITaskConversation } from '@/types';
+
+export default function TaskChat({
+  basePath,
+  onApplyToPrompt,
+}: {
+  basePath: string;
+  onApplyToPrompt: (content: string) => void;
+}) {
+  const [messages, setMessages] = useState<ITaskConversation[]>([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    fetch(`${basePath}/chat`)
+      .then(r => r.json())
+      .then(data => setMessages(Array.isArray(data) ? data : []));
+  }, [basePath]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const send = useCallback(async () => {
+    const text = input.trim();
+    if (!text || loading) return;
+
+    setInput('');
+    setLoading(true);
+
+    // Optimistic user message
+    const tempId = `temp-${Date.now()}`;
+    const userMsg: ITaskConversation = {
+      id: tempId, task_id: '', role: 'user', content: text,
+      created_at: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, userMsg]);
+
+    try {
+      const res = await fetch(`${basePath}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(prev => {
+          const withoutTemp = prev.filter(m => m.id !== tempId);
+          return [...withoutTemp, data.userMessage, data.aiMessage];
+        });
+      }
+    } catch { /* silent */ }
+    setLoading(false);
+    inputRef.current?.focus();
+  }, [input, loading, basePath]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full border-t border-border">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border">
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">AI Chat</span>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2 min-h-0">
+        {messages.length === 0 && !loading && (
+          <div className="text-sm text-muted-foreground text-center py-4">
+            Ask AI to help refine your task or prompt
+          </div>
+        )}
+        {messages.map((msg) => (
+          <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+            <div className={`max-w-[90%] px-3 py-2 rounded-lg text-sm leading-relaxed whitespace-pre-wrap ${
+              msg.role === 'user'
+                ? 'bg-accent text-white rounded-br-sm'
+                : 'bg-muted text-foreground rounded-bl-sm'
+            }`}>
+              {msg.content}
+            </div>
+            {msg.role === 'assistant' && (
+              <button
+                onClick={() => onApplyToPrompt(msg.content)}
+                className="text-xs text-muted-foreground hover:text-primary mt-0.5 px-1 transition-colors"
+              >
+                Apply to prompt
+              </button>
+            )}
+          </div>
+        ))}
+        {loading && (
+          <div className="flex gap-1 px-2 py-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="flex gap-1.5 px-2 py-2 border-t border-border">
+        <textarea
+          ref={inputRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Ask AI..."
+          rows={1}
+          className="flex-1 bg-input border border-border rounded-md px-3 py-2 text-sm
+                     text-foreground resize-none focus:border-primary focus:outline-none"
+        />
+        <button
+          onClick={send}
+          disabled={!input.trim() || loading}
+          className="px-3 py-2 bg-accent text-white text-sm rounded-md
+                     disabled:opacity-40 hover:bg-accent/80 transition-colors flex-shrink-0"
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  );
+}
