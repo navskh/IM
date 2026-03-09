@@ -14,9 +14,17 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "IM - 아이디어 매니저",
-  description: "자유롭게 아이디어를 쏟아내면, AI가 구조화해드립니다",
+  description: "아이디어에서 실행 가능한 프롬프트까지, 멀티 프로젝트 워크플로우 매니저",
   icons: {
     icon: '/favicon.svg',
+    apple: '/icon-192.png',
+  },
+  manifest: '/manifest.json',
+  themeColor: '#6366f1',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'IM',
   },
 };
 
@@ -39,6 +47,15 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js');
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );

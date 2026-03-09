@@ -1,0 +1,27 @@
+{
+  "name": "IM - 아이디어 매니저",
+  "short_name": "IM",
+  "description": "아이디어에서 실행 가능한 프롬프트까지, 멀티 프로젝트 워크플로우 매니저",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1117",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

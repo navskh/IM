@@ -854,6 +854,64 @@ textarea:focus {
   animation: progressIndeterminate 1.5s ease-in-out infinite;
 }
 
+/* Tab bar */
+.tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: hsl(var(--background));
+  border-bottom: 1px solid hsl(var(--border));
+  padding: 0 4px;
+  height: 36px;
+  flex-shrink: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tab-bar::-webkit-scrollbar { height: 0; }
+
+.tab-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 180px;
+  user-select: none;
+}
+
+.tab-item:hover {
+  color: hsl(var(--foreground));
+  background: hsl(var(--muted));
+}
+
+.tab-item-active {
+  color: hsl(var(--foreground));
+  border-bottom-color: hsl(var(--primary));
+}
+
+.tab-close {
+  font-size: 15px;
+  line-height: 1;
+  color: hsl(var(--muted-foreground));
+  opacity: 0;
+  transition: opacity 0.1s, color 0.1s;
+  padding: 0 2px;
+  border-radius: 3px;
+}
+
+.tab-item:hover .tab-close { opacity: 1; }
+.tab-close:hover {
+  color: hsl(var(--destructive));
+  background: hsl(var(--destructive) / 0.15);
+}
+
 /* Panel resize handle (vertical) */
 .panel-resize-handle {
   flex-shrink: 0;
