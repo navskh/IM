@@ -1,8 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { getNextTask, getProjectContext, formatTaskForMcp, formatProjectForMcp } from '@/lib/mcp/tools';
-import type { McpToolContext } from '@/lib/mcp/tools';
+import { getNextTask, getProjectContext, formatTaskForMcp, formatProjectForMcp } from './tools';
+import type { McpToolContext } from './tools';
 
 export async function startMcpServer(ctx: McpToolContext) {
   const server = new McpServer({

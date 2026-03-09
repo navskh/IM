@@ -1,4 +1,4 @@
-import type { ITask, ITaskPrompt, ISubProject } from '@/types';
+import type { ITask, ITaskPrompt, ISubProject } from '../../types';
 
 export interface McpToolContext {
   listProjects: () => { id: string; name: string; description: string; created_at: string; updated_at: string }[];

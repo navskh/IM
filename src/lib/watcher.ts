@@ -5,7 +5,7 @@ import { getSubProject } from './db/queries/sub-projects';
 import { getTasksByProject, getTask, updateTask } from './db/queries/tasks';
 import { getTaskPrompt } from './db/queries/task-prompts';
 import { addTaskConversation } from './db/queries/task-conversations';
-import type { ITask, IProject } from '@/types';
+import type { ITask, IProject } from '../types';
 
 export interface WatcherOptions {
   projectId?: string;

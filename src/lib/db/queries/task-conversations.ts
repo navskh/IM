@@ -1,6 +1,6 @@
 import { getDb } from '../index';
 import { generateId } from '../../utils/id';
-import type { ITaskConversation } from '@/types';
+import type { ITaskConversation } from '../../../types';
 
 export function getTaskConversations(taskId: string): ITaskConversation[] {
   const db = getDb();

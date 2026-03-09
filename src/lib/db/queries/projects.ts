@@ -1,6 +1,6 @@
 import { getDb } from '../index';
 import { generateId } from '../../utils/id';
-import type { IProject } from '@/types';
+import type { IProject } from '../../../types';
 
 interface ProjectRow {
   id: string;

@@ -1,6 +1,6 @@
 import { getDb } from '../index';
 import { generateId } from '../../utils/id';
-import type { ISubProject, ISubProjectWithStats, TaskStatus } from '@/types';
+import type { ISubProject, ISubProjectWithStats, TaskStatus } from '../../../types';
 
 export function getSubProjects(projectId: string): ISubProject[] {
   const db = getDb();

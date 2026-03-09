@@ -1,5 +1,5 @@
 import { getDb } from '../index';
-import type { IBrainstorm } from '@/types';
+import type { IBrainstorm } from '../../../types';
 
 export function getBrainstorm(projectId: string): IBrainstorm | undefined {
   const db = getDb();

@@ -1,6 +1,6 @@
 import { getDb } from '../index';
 import { generateId } from '../../utils/id';
-import type { ITask, TaskStatus, ItemPriority } from '@/types';
+import type { ITask, TaskStatus, ItemPriority } from '../../../types';
 
 interface TaskRow {
   id: string;

@@ -1,6 +1,6 @@
 import { getDb } from '../index';
 import { generateId } from '../../utils/id';
-import type { ITaskPrompt } from '@/types';
+import type { ITaskPrompt } from '../../../types';
 
 export function getTaskPrompt(taskId: string): ITaskPrompt | undefined {
   const db = getDb();

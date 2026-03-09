@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { startMcpServer } from '@/lib/mcp/server';
-import { listProjects, getProject } from '@/lib/db/queries/projects';
-import { getSubProjects } from '@/lib/db/queries/sub-projects';
-import { getTasksByProject, updateTask } from '@/lib/db/queries/tasks';
-import { getTaskPrompt } from '@/lib/db/queries/task-prompts';
-import type { McpToolContext } from '@/lib/mcp/tools';
+import { startMcpServer } from './lib/mcp/server';
+import { listProjects, getProject } from './lib/db/queries/projects';
+import { getSubProjects } from './lib/db/queries/sub-projects';
+import { getTasksByProject, updateTask } from './lib/db/queries/tasks';
+import { getTaskPrompt } from './lib/db/queries/task-prompts';
+import type { McpToolContext } from './lib/mcp/tools';
 import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -46,7 +46,7 @@ program
   .option('--timeout <minutes>', 'Per-task timeout in minutes', '10')
   .option('--dry-run', 'Show what would be executed without running')
   .action(async (opts) => {
-    const { startWatcher } = await import('@/lib/watcher');
+    const { startWatcher } = await import('./lib/watcher');
     await startWatcher({
       projectId: opts.project,
       intervalMs: parseInt(opts.interval) * 1000,
