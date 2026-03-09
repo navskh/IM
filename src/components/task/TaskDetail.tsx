@@ -28,11 +28,16 @@ export default function TaskDetail({
 
   const basePath = `/api/projects/${projectId}/sub-projects/${subProjectId}/tasks/${task.id}`;
 
+  // Auto-show chat when task is being executed by watcher
+  useEffect(() => {
+    if (task.status === 'testing') setShowChat(true);
+  }, [task.status]);
+
   // Load prompt
   useEffect(() => {
     setTitle(task.title);
     setDescription(task.description);
-    setShowChat(false);
+    setShowChat(task.status === 'testing');
     fetch(`${basePath}/prompt`)
       .then(r => r.json())
       .then(data => setPromptContent(data.content || ''));
@@ -196,6 +201,7 @@ export default function TaskDetail({
         <div className="h-[45%] flex-shrink-0">
           <TaskChat
             basePath={basePath}
+            taskStatus={task.status}
             onApplyToPrompt={handleApplyToPrompt}
           />
         </div>

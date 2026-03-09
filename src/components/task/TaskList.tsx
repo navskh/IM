@@ -17,6 +17,7 @@ export default function TaskList({
   onCreate,
   onStatusChange,
   onTodayToggle,
+  onDelete,
 }: {
   tasks: ITask[];
   selectedTaskId: string | null;
@@ -24,6 +25,7 @@ export default function TaskList({
   onCreate: (title: string) => void;
   onStatusChange: (taskId: string, status: TaskStatus) => void;
   onTodayToggle: (taskId: string, isToday: boolean) => void;
+  onDelete: (taskId: string) => void;
 }) {
   const [newTitle, setNewTitle] = useState('');
   const [adding, setAdding] = useState(false);
@@ -48,7 +50,7 @@ export default function TaskList({
           <div
             key={task.id}
             onClick={() => onSelect(task.id)}
-            className={`flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors text-sm border-l-2 ${
+            className={`group flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors text-sm border-l-2 ${
               selectedTaskId === task.id
                 ? 'bg-card-hover border-l-primary'
                 : 'border-l-transparent hover:bg-card-hover/50'
@@ -77,6 +79,17 @@ export default function TaskList({
                 *
               </button>
             )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(task.id);
+              }}
+              className="flex-shrink-0 text-muted-foreground/0 group-hover:text-muted-foreground
+                         hover:!text-destructive transition-colors text-xs px-0.5"
+              title="Delete task"
+            >
+              ×
+            </button>
           </div>
         ))}
       </div>

@@ -22,6 +22,7 @@ export default function ProjectTree({
   onCreateTask,
   onStatusChange,
   onTodayToggle,
+  onDeleteTask,
 }: {
   subProjects: ISubProjectWithStats[];
   tasks: ITask[];
@@ -34,6 +35,7 @@ export default function ProjectTree({
   onCreateTask: (title: string) => void;
   onStatusChange: (taskId: string, status: TaskStatus) => void;
   onTodayToggle: (taskId: string, isToday: boolean) => void;
+  onDeleteTask: (taskId: string) => void;
 }) {
   const [collapsedSubs, setCollapsedSubs] = useState<Set<string>>(new Set());
   const [addingTaskFor, setAddingTaskFor] = useState<string | null>(null);
@@ -130,7 +132,7 @@ export default function ProjectTree({
                     <div
                       key={task.id}
                       onClick={() => onSelectTask(task.id)}
-                      className={`flex items-center gap-1.5 pl-4 pr-2 py-1.5 cursor-pointer transition-colors text-sm border-l-2 ${
+                      className={`group/task flex items-center gap-1.5 pl-4 pr-2 py-1.5 cursor-pointer transition-colors text-sm border-l-2 ${
                         selectedTaskId === task.id
                           ? 'bg-card-hover border-l-primary'
                           : 'border-l-transparent hover:bg-card-hover/50'
@@ -159,6 +161,17 @@ export default function ProjectTree({
                           *
                         </button>
                       )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteTask(task.id);
+                        }}
+                        className="flex-shrink-0 text-muted-foreground/0 group-hover/task:text-muted-foreground
+                                   hover:!text-destructive transition-colors text-xs px-0.5"
+                        title="Delete task"
+                      >
+                        ×
+                      </button>
                     </div>
                   ))}
 

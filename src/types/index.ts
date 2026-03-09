@@ -4,6 +4,7 @@ export interface IProject {
   description: string;
   project_path: string | null;
   ai_context: string;
+  watch_enabled: boolean;
   created_at: string;
   updated_at: string;
 }

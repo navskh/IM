@@ -1,14 +1,18 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { ITaskConversation } from '@/types';
+import type { ITaskConversation, TaskStatus } from '@/types';
 import ReactMarkdown from 'react-markdown';
+
+const POLL_INTERVAL = 3000; // Poll every 3s when task is testing
 
 export default function TaskChat({
   basePath,
+  taskStatus,
   onApplyToPrompt,
 }: {
   basePath: string;
+  taskStatus?: TaskStatus;
   onApplyToPrompt: (content: string) => void;
 }) {
   const [messages, setMessages] = useState<ITaskConversation[]>([]);
@@ -17,11 +21,25 @@ export default function TaskChat({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
+  const fetchMessages = useCallback(() => {
     fetch(`${basePath}/chat`)
       .then(r => r.json())
-      .then(data => setMessages(Array.isArray(data) ? data : []));
+      .then(data => {
+        if (Array.isArray(data)) setMessages(data);
+      });
   }, [basePath]);
+
+  // Initial load
+  useEffect(() => {
+    fetchMessages();
+  }, [fetchMessages]);
+
+  // Auto-poll when task is testing (watcher is running)
+  useEffect(() => {
+    if (taskStatus !== 'testing') return;
+    const interval = setInterval(fetchMessages, POLL_INTERVAL);
+    return () => clearInterval(interval);
+  }, [taskStatus, fetchMessages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -71,6 +89,12 @@ export default function TaskChat({
     <div className="flex flex-col h-full border-t border-border">
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-border">
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">AI Chat</span>
+        {taskStatus === 'testing' && (
+          <span className="flex items-center gap-1.5 text-xs text-warning">
+            <span className="inline-block w-2 h-2 rounded-full bg-warning animate-pulse" />
+            Executing...
+          </span>
+        )}
       </div>
 
       {/* Messages */}

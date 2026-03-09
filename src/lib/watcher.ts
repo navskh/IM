@@ -14,6 +14,8 @@ export interface WatcherOptions {
   dryRun: boolean;
 }
 
+const PROGRESS_SAVE_INTERVAL = 5000; // Save streaming output to DB every 5s
+
 function timestamp(): string {
   return new Date().toLocaleTimeString('ko-KR', { hour12: false });
 }
@@ -35,12 +37,10 @@ function formatDuration(ms: number): string {
 }
 
 function resolveCwd(task: ITask, project: IProject): string | null {
-  // 1. sub_project.folder_path
   const subProject = getSubProject(task.sub_project_id);
   if (subProject?.folder_path && fs.existsSync(subProject.folder_path)) {
     return subProject.folder_path;
   }
-  // 2. project.project_path
   if (project.project_path && fs.existsSync(project.project_path)) {
     return project.project_path;
   }
@@ -60,7 +60,6 @@ async function executeTask(task: ITask, project: IProject, options: WatcherOptio
     return;
   }
 
-  // Re-check status (another watcher might have grabbed it)
   const fresh = getTask(task.id);
   if (!fresh || fresh.status !== 'submitted') {
     logTask(`⚠ Skip "${task.title}" — status already changed`);
@@ -80,37 +79,90 @@ async function executeTask(task: ITask, project: IProject, options: WatcherOptio
   // Transition: submitted → testing
   updateTask(task.id, { status: 'testing' });
   logTask(`submitted → testing`);
-  addTaskConversation(task.id, 'user', `[watch] Execution started`);
+  addTaskConversation(task.id, 'user', `[watch] 실행 시작`);
 
   const startTime = Date.now();
 
-  // Build prompt with AI policy context
   let fullPrompt = prompt.content;
   if (project.ai_context) {
     fullPrompt = `Project AI Policy:\n${project.ai_context}\n\n---\n\n${fullPrompt}`;
   }
 
+  logTask('────────────────────────────────');
+
+  // Accumulate streaming output and periodically save to DB
+  let accumulated = '';
+  let progressMsgId: string | null = null;
+  let lastSaveTime = Date.now();
+
+  const saveProgress = () => {
+    if (!accumulated.trim()) return;
+    const content = `[진행 중]\n${accumulated}`;
+    if (progressMsgId) {
+      // Update existing progress message
+      const { getDb } = require('./db/index');
+      const db = getDb();
+      db.prepare('UPDATE task_conversations SET content = ? WHERE id = ?').run(content, progressMsgId);
+    } else {
+      const msg = addTaskConversation(task.id, 'assistant', content);
+      progressMsgId = msg.id;
+    }
+  };
+
   try {
-    const result = await runClaude(fullPrompt, undefined, undefined, {
+    const onText = (chunk: string) => {
+      process.stdout.write(chunk);
+      accumulated += chunk;
+
+      // Save to DB periodically
+      if (Date.now() - lastSaveTime > PROGRESS_SAVE_INTERVAL) {
+        saveProgress();
+        lastSaveTime = Date.now();
+      }
+    };
+
+    const result = await runClaude(fullPrompt, onText, undefined, {
       cwd,
       timeoutMs: options.timeoutMs,
     });
 
+    process.stdout.write('\n');
+    logTask('────────────────────────────────');
+
     const duration = Date.now() - startTime;
     updateTask(task.id, { status: 'done' });
-    addTaskConversation(task.id, 'assistant', result || '(no output)');
+
+    // Replace progress message with final result
+    if (progressMsgId) {
+      const { getDb } = require('./db/index');
+      const db = getDb();
+      db.prepare('UPDATE task_conversations SET content = ? WHERE id = ?').run(result || '(no output)', progressMsgId);
+    } else {
+      addTaskConversation(task.id, 'assistant', result || '(no output)');
+    }
+
     console.log(`[${timestamp()}]   ✓ Done (${formatDuration(duration)})`);
   } catch (err) {
     const duration = Date.now() - startTime;
+    process.stdout.write('\n');
+    logTask('────────────────────────────────');
     const errorMsg = err instanceof Error ? err.message : String(err);
     updateTask(task.id, { status: 'problem' });
-    addTaskConversation(task.id, 'assistant', `[error] ${errorMsg}`);
+
+    // Replace progress message with error
+    if (progressMsgId) {
+      const { getDb } = require('./db/index');
+      const db = getDb();
+      db.prepare('UPDATE task_conversations SET content = ? WHERE id = ?').run(`[error] ${errorMsg}`, progressMsgId);
+    } else {
+      addTaskConversation(task.id, 'assistant', `[error] ${errorMsg}`);
+    }
+
     console.log(`[${timestamp()}]   ✗ Failed (${formatDuration(duration)}): ${errorMsg}`);
   }
 }
 
 export async function startWatcher(options: WatcherOptions): Promise<void> {
-  // Validate project if specified
   if (options.projectId) {
     const project = getProject(options.projectId);
     if (!project) {
@@ -119,8 +171,7 @@ export async function startWatcher(options: WatcherOptions): Promise<void> {
     }
     log(`Watching project: "${project.name}" (${project.id})`);
   } else {
-    const projects = listProjects();
-    log(`Watching all projects (${projects.length})`);
+    log(`Watching all watch-enabled projects`);
   }
 
   log(`Polling every ${options.intervalMs / 1000}s | Timeout: ${options.timeoutMs / 60000}m${options.dryRun ? ' | DRY RUN' : ''}`);
@@ -135,17 +186,15 @@ export async function startWatcher(options: WatcherOptions): Promise<void> {
     isProcessing = true;
 
     try {
-      // Collect submitted tasks
-      const projectIds = options.projectId
-        ? [options.projectId]
-        : listProjects().map(p => p.id);
+      // Only process watch-enabled projects
+      const projects = options.projectId
+        ? [getProject(options.projectId)!].filter(p => p)
+        : listProjects().filter(p => p.watch_enabled);
 
       const submittedTasks: { task: ITask; project: IProject }[] = [];
 
-      for (const pid of projectIds) {
-        const project = getProject(pid);
-        if (!project) continue;
-        const tasks = getTasksByProject(pid).filter(t => t.status === 'submitted');
+      for (const project of projects) {
+        const tasks = getTasksByProject(project.id).filter(t => t.status === 'submitted');
         for (const task of tasks) {
           submittedTasks.push({ task, project });
         }
@@ -166,13 +215,11 @@ export async function startWatcher(options: WatcherOptions): Promise<void> {
     }
   };
 
-  // Graceful shutdown
   const shutdown = () => {
     if (shuttingDown) return;
     shuttingDown = true;
     console.log(`\n[IM Watch] Shutting down...${isProcessing ? ' (waiting for current task)' : ''}`);
     if (!isProcessing) process.exit(0);
-    // If processing, the poll loop will exit after the current task
     const checkDone = setInterval(() => {
       if (!isProcessing) {
         clearInterval(checkDone);
@@ -184,7 +231,6 @@ export async function startWatcher(options: WatcherOptions): Promise<void> {
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
 
-  // Initial poll + recurring
   await poll();
   setInterval(poll, options.intervalMs);
 }

@@ -16,6 +16,7 @@ interface IProject {
   description: string;
   project_path: string | null;
   ai_context: string;
+  watch_enabled: boolean;
 }
 
 function WorkspaceInner({ id }: { id: string }) {
@@ -189,9 +190,10 @@ function WorkspaceInner({ id }: { id: string }) {
     }
   };
 
-  const handleTaskDelete = () => {
-    if (!selectedTaskId) return;
-    setConfirmAction({ type: 'delete-task', id: selectedTaskId });
+  const handleTaskDelete = (taskId?: string) => {
+    const id = taskId || selectedTaskId;
+    if (!id) return;
+    setConfirmAction({ type: 'delete-task', id });
   };
 
   const handleConfirmAction = async () => {
@@ -233,6 +235,18 @@ function WorkspaceInner({ id }: { id: string }) {
     if (res.ok) {
       setProject(await res.json());
       setShowAiPolicy(false);
+    }
+  };
+
+  const handleToggleWatch = async () => {
+    if (!project) return;
+    const res = await fetch(`/api/projects/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ watch_enabled: !project.watch_enabled }),
+    });
+    if (res.ok) {
+      setProject(await res.json());
     }
   };
 
@@ -304,6 +318,18 @@ function WorkspaceInner({ id }: { id: string }) {
           )}
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleToggleWatch}
+            className={`px-3 py-1.5 text-xs border rounded-md transition-colors flex items-center gap-1.5 ${
+              project.watch_enabled
+                ? 'bg-success/15 text-success border-success/30 hover:bg-success/25'
+                : 'bg-muted hover:bg-card-hover text-muted-foreground border-border'
+            }`}
+            title={project.watch_enabled ? 'Watch ON — submitted 태스크 자동 실행' : 'Watch OFF'}
+          >
+            <span className={`inline-block w-2 h-2 rounded-full ${project.watch_enabled ? 'bg-success animate-pulse' : 'bg-muted-foreground/40'}`} />
+            Watch
+          </button>
           <button
             onClick={() => setShowAiPolicy(true)}
             className={`px-3 py-1.5 text-xs border rounded-md transition-colors ${
@@ -391,6 +417,7 @@ function WorkspaceInner({ id }: { id: string }) {
             onCreateTask={handleCreateTask}
             onStatusChange={handleTaskStatusChange}
             onTodayToggle={handleTaskTodayToggle}
+            onDeleteTask={handleTaskDelete}
           />
         </div>
 
