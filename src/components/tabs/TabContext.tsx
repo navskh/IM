@@ -111,6 +111,8 @@ interface TabContextValue {
   setActiveTab: (tabId: string) => void;
   updateTabName: (tabId: string, name: string) => void;
   consumeInitial: (tabId: string) => void;
+  nextTab: () => void;
+  prevTab: () => void;
 }
 
 const TabCtx = createContext<TabContextValue | null>(null);
@@ -193,8 +195,36 @@ export function TabProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'CONSUME_INITIAL', tabId });
   }, []);
 
+  const nextTab = useCallback(() => {
+    const idx = state.tabs.findIndex(t => t.id === state.activeTabId);
+    const next = state.tabs[(idx + 1) % state.tabs.length];
+    if (next) dispatch({ type: 'SET_ACTIVE', tabId: next.id });
+  }, [state.tabs, state.activeTabId]);
+
+  const prevTab = useCallback(() => {
+    const idx = state.tabs.findIndex(t => t.id === state.activeTabId);
+    const prev = state.tabs[(idx - 1 + state.tabs.length) % state.tabs.length];
+    if (prev) dispatch({ type: 'SET_ACTIVE', tabId: prev.id });
+  }, [state.tabs, state.activeTabId]);
+
+  // Ctrl+Tab / Ctrl+Shift+Tab keyboard shortcut
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'Tab') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          prevTab();
+        } else {
+          nextTab();
+        }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [nextTab, prevTab]);
+
   return (
-    <TabCtx.Provider value={{ state, openProject, closeTab, setActiveTab, updateTabName, consumeInitial }}>
+    <TabCtx.Provider value={{ state, openProject, closeTab, setActiveTab, updateTabName, consumeInitial, nextTab, prevTab }}>
       {children}
     </TabCtx.Provider>
   );
