@@ -334,10 +334,6 @@ function WorkspaceInner({ id }: { id: string }) {
             <div style={{ width: leftWidth }} className="border-r border-border flex flex-col flex-shrink-0">
               <Editor
                 projectId={id}
-                onContentChange={() => {}}
-                onSendMessage={() => {}}
-                memos={[]}
-                chatLoading={false}
                 onCollapse={() => setShowBrainstorm(false)}
               />
             </div>

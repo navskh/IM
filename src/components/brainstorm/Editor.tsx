@@ -1,39 +1,18 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import MemoPin from './MemoPin';
-
-interface Memo {
-  id: string;
-  anchor_text: string;
-  question: string;
-  is_resolved: boolean;
-}
 
 interface EditorProps {
   projectId: string;
-  onContentChange: (content: string) => void;
-  onSendMessage: (message: string) => void;
-  memos?: Memo[];
-  chatLoading?: boolean;
   onCollapse?: () => void;
 }
 
-interface PinPosition {
-  memo: Memo;
-  top: number;
-  left: number;
-}
-
-export default function Editor({ projectId, onContentChange, onSendMessage, memos = [], chatLoading, onCollapse }: EditorProps) {
+export default function Editor({ projectId, onCollapse }: EditorProps) {
   const [content, setContent] = useState('');
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const [pinPositions, setPinPositions] = useState<PinPosition[]>([]);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const structureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const overlayRef = useRef<HTMLDivElement>(null);
 
   // Load brainstorm content
   useEffect(() => {
@@ -45,37 +24,6 @@ export default function Editor({ projectId, onContentChange, onSendMessage, memo
     };
     load();
   }, [projectId]);
-
-  // Calculate pin positions when memos or content change
-  useEffect(() => {
-    if (!textareaRef.current || !content) {
-      setPinPositions([]);
-      return;
-    }
-
-    const textarea = textareaRef.current;
-    const unresolvedMemos = memos.filter(m => !m.is_resolved);
-    const positions: PinPosition[] = [];
-
-    for (const memo of unresolvedMemos) {
-      const idx = content.indexOf(memo.anchor_text);
-      if (idx === -1) continue;
-
-      // Calculate approximate position based on character index
-      const textBefore = content.substring(0, idx);
-      const lines = textBefore.split('\n');
-      const lineNumber = lines.length - 1;
-      const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 22;
-      const paddingTop = parseFloat(getComputedStyle(textarea).paddingTop) || 16;
-
-      const top = paddingTop + lineNumber * lineHeight;
-      const left = textarea.clientWidth - 28;
-
-      positions.push({ memo, top, left });
-    }
-
-    setPinPositions(positions);
-  }, [memos, content]);
 
   const saveContent = useCallback(async (text: string) => {
     setSaving(true);
@@ -96,21 +44,6 @@ export default function Editor({ projectId, onContentChange, onSendMessage, memo
     saveTimerRef.current = setTimeout(() => {
       saveContent(newContent);
     }, 1000);
-
-    // Trigger AI structuring with 3s debounce
-    if (structureTimerRef.current) clearTimeout(structureTimerRef.current);
-    if (newContent.trim()) {
-      structureTimerRef.current = setTimeout(() => {
-        onContentChange(newContent);
-      }, 3000);
-    }
-  };
-
-  // Sync scroll between textarea and overlay
-  const handleScroll = () => {
-    if (textareaRef.current && overlayRef.current) {
-      overlayRef.current.scrollTop = textareaRef.current.scrollTop;
-    }
   };
 
   if (!loaded) {
@@ -145,7 +78,6 @@ export default function Editor({ projectId, onContentChange, onSendMessage, memo
           ref={textareaRef}
           value={content}
           onChange={handleChange}
-          onScroll={handleScroll}
           placeholder={`자유롭게 아이디어를 적어보세요...
 
 예시:
@@ -158,21 +90,6 @@ export default function Editor({ projectId, onContentChange, onSendMessage, memo
                      placeholder:text-muted-foreground/40 font-mono text-sm leading-relaxed"
           spellCheck={false}
         />
-        {pinPositions.length > 0 && (
-          <div ref={overlayRef} className="memo-overlay">
-            {pinPositions.map((pin) => (
-              <MemoPin
-                key={pin.memo.id}
-                question={pin.memo.question}
-                anchorText={pin.memo.anchor_text}
-                top={pin.top}
-                left={pin.left}
-                loading={chatLoading}
-                onSendMessage={onSendMessage}
-              />
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
