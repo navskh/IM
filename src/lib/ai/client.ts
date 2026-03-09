@@ -8,11 +8,16 @@ const MAX_TURNS = 80;
 export type OnTextChunk = (text: string) => void;
 export type OnRawEvent = (event: Record<string, unknown>) => void;
 
+export interface RunClaudeOptions {
+  cwd?: string;
+  timeoutMs?: number;
+}
+
 /**
  * Spawn Claude Code CLI and collect the result text.
  * Optional onText callback receives streaming text chunks as they arrive.
  */
-export function runClaude(prompt: string, onText?: OnTextChunk, onRawEvent?: OnRawEvent): Promise<string> {
+export function runClaude(prompt: string, onText?: OnTextChunk, onRawEvent?: OnRawEvent, options?: RunClaudeOptions): Promise<string> {
   return new Promise((resolve, reject) => {
     const useStreamJson = !!(onText || onRawEvent);
     const args = [
@@ -35,10 +40,20 @@ export function runClaude(prompt: string, onText?: OnTextChunk, onRawEvent?: OnR
     }
 
     const proc = spawn(CLI_PATH, args, {
-      cwd: process.cwd(),
+      cwd: options?.cwd || process.cwd(),
       stdio: ['pipe', 'pipe', 'pipe'],
       env: { ...cleanEnv, FORCE_COLOR: '0' },
     });
+
+    // Timeout handling
+    let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
+    let timedOut = false;
+    if (options?.timeoutMs) {
+      timeoutTimer = setTimeout(() => {
+        timedOut = true;
+        proc.kill('SIGTERM');
+      }, options.timeoutMs);
+    }
 
     // Write prompt to stdin and close it
     proc.stdin?.write(prompt);
@@ -99,9 +114,14 @@ export function runClaude(prompt: string, onText?: OnTextChunk, onRawEvent?: OnR
     });
 
     proc.on('exit', (code, signal) => {
+      if (timeoutTimer) clearTimeout(timeoutTimer);
       // Clean up known CLI noise from text output
       if (!useStreamJson) {
         resultText = resultText.replace(/Error: Reached max turns \(\d+\)\s*/g, '').trim();
+      }
+      if (timedOut) {
+        reject(new Error(`Claude CLI timed out after ${Math.round((options?.timeoutMs || 0) / 1000)}s`));
+        return;
       }
       if (code !== 0 && !resultText) {
         const detail = stderrText.slice(0, 500) || (signal ? `killed by signal ${signal}` : 'no output');

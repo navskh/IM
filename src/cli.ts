@@ -39,6 +39,23 @@ program
   });
 
 program
+  .command('watch')
+  .description('Watch for submitted tasks and auto-execute via Claude CLI')
+  .option('--project <id>', 'Watch a specific project (default: all)')
+  .option('--interval <seconds>', 'Polling interval in seconds', '10')
+  .option('--timeout <minutes>', 'Per-task timeout in minutes', '10')
+  .option('--dry-run', 'Show what would be executed without running')
+  .action(async (opts) => {
+    const { startWatcher } = await import('@/lib/watcher');
+    await startWatcher({
+      projectId: opts.project,
+      intervalMs: parseInt(opts.interval) * 1000,
+      timeoutMs: parseInt(opts.timeout) * 60000,
+      dryRun: !!opts.dryRun,
+    });
+  });
+
+program
   .command('start')
   .description('Start the web UI (Next.js dev server on port 3456)')
   .option('-p, --port <port>', 'Port number', '3456')
