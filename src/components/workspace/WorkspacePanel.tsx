@@ -78,7 +78,7 @@ export default function WorkspacePanel({
     const handleMouseMove = (e: MouseEvent) => {
       if (!draggingRef.current) return;
       const delta = e.clientX - startXRef.current;
-      const newWidth = Math.max(180, Math.min(500, startWidthRef.current + delta));
+      const newWidth = Math.max(180, Math.min(900, startWidthRef.current + delta));
       if (draggingRef.current === 'left') setLeftWidth(newWidth);
       else setCenterWidth(newWidth);
     };
@@ -215,6 +215,20 @@ export default function WorkspacePanel({
       setTasks(prev => prev.map(t => t.id === selectedTaskId ? updated : t));
       loadSubProjects();
     }
+  };
+
+  const handleReorderSubs = async (orderedIds: string[]) => {
+    // Optimistic update
+    setSubProjects(prev => {
+      const map = new Map(prev.map(sp => [sp.id, sp]));
+      return orderedIds.map(id => map.get(id)!).filter(Boolean);
+    });
+
+    await fetch(`/api/projects/${id}/sub-projects`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderedIds }),
+    });
   };
 
   const handleTaskDelete = (taskId?: string) => {
@@ -403,7 +417,8 @@ export default function WorkspacePanel({
             onSelectTask={setSelectedTaskId}
             onCreateSub={() => setShowAddSub(true)} onDeleteSub={handleDeleteSubProject}
             onCreateTask={handleCreateTask} onStatusChange={handleTaskStatusChange}
-            onTodayToggle={handleTaskTodayToggle} onDeleteTask={handleTaskDelete} />
+            onTodayToggle={handleTaskTodayToggle} onDeleteTask={handleTaskDelete}
+            onReorderSubs={handleReorderSubs} />
         </div>
 
         <div className="panel-resize-handle" onMouseDown={(e) => handleMouseDown('center', e)}>

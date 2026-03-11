@@ -1,6 +1,22 @@
 'use client';
 
 import { useState } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { ITask, ISubProjectWithStats, TaskStatus } from '@/types';
 import { statusIcon } from './StatusFlow';
 
@@ -23,6 +39,7 @@ export default function ProjectTree({
   onStatusChange,
   onTodayToggle,
   onDeleteTask,
+  onReorderSubs,
 }: {
   subProjects: ISubProjectWithStats[];
   tasks: ITask[];
@@ -36,10 +53,30 @@ export default function ProjectTree({
   onStatusChange: (taskId: string, status: TaskStatus) => void;
   onTodayToggle: (taskId: string, isToday: boolean) => void;
   onDeleteTask: (taskId: string) => void;
+  onReorderSubs?: (orderedIds: string[]) => void;
 }) {
   const [collapsedSubs, setCollapsedSubs] = useState<Set<string>>(new Set());
   const [addingTaskFor, setAddingTaskFor] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !onReorderSubs) return;
+
+    const oldIndex = subProjects.findIndex(sp => sp.id === active.id);
+    const newIndex = subProjects.findIndex(sp => sp.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const newOrder = [...subProjects];
+    const [moved] = newOrder.splice(oldIndex, 1);
+    newOrder.splice(newIndex, 0, moved);
+    onReorderSubs(newOrder.map(sp => sp.id));
+  };
 
   const toggleCollapse = (subId: string) => {
     setCollapsedSubs(prev => {
@@ -79,151 +116,236 @@ export default function ProjectTree({
           </div>
         )}
 
-        {subProjects.map((sp) => {
-          const isSelected = selectedSubId === sp.id;
-          const isCollapsed = collapsedSubs.has(sp.id);
-          const subTasks = isSelected ? tasks : [];
-
-          return (
-            <div key={sp.id} className="mb-0.5">
-              {/* Sub-project node */}
-              <div
-                onClick={() => {
-                  onSelectSub(sp.id);
-                  if (isCollapsed) toggleCollapse(sp.id);
-                }}
-                className={`flex items-center gap-1.5 px-2 py-1.5 cursor-pointer transition-colors group text-sm ${
-                  isSelected
-                    ? 'text-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <button
-                  onClick={(e) => { e.stopPropagation(); toggleCollapse(sp.id); }}
-                  className="w-4 h-4 flex items-center justify-center text-xs text-muted-foreground flex-shrink-0"
-                >
-                  {isCollapsed ? '\u25B6' : '\u25BC'}
-                </button>
-                <span className={`flex-1 truncate font-medium ${isSelected ? 'text-primary' : ''}`}>
-                  {sp.name}
-                </span>
-                <div className="flex items-center gap-1.5">
-                  {sp.task_count > 0 && (
-                    <span className="text-xs text-muted-foreground tabular-nums">{sp.task_count}</span>
-                  )}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onDeleteSub(sp.id); }}
-                    className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                  >
-                    x
-                  </button>
-                </div>
-              </div>
-
-              {/* Tasks (children) */}
-              {!isCollapsed && isSelected && (
-                <div className="ml-3 border-l border-border/50">
-                  {subTasks.length === 0 && !addingTaskFor && (
-                    <div className="text-xs text-muted-foreground py-2 pl-4">
-                      No tasks
-                    </div>
-                  )}
-                  {subTasks.map((task) => (
-                    <div
-                      key={task.id}
-                      onClick={() => onSelectTask(task.id)}
-                      className={`group/task flex items-center gap-1.5 pl-4 pr-2 py-1.5 cursor-pointer transition-colors text-sm border-l-2 ${
-                        selectedTaskId === task.id
-                          ? 'bg-card-hover border-l-primary'
-                          : 'border-l-transparent hover:bg-card-hover/50'
-                      }`}
-                    >
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const nextStatus = getNextStatus(task.status);
-                          onStatusChange(task.id, nextStatus);
-                        }}
-                        className="flex-shrink-0 text-sm"
-                        title={`Status: ${task.status}`}
-                      >
-                        {statusIcon(task.status)}
-                      </button>
-                      <span className={`tree-priority-dot ${PRIORITY_COLORS[task.priority]}`} />
-                      <span className={`flex-1 truncate ${task.status === 'done' ? 'text-muted-foreground line-through' : ''}`}>
-                        {task.title}
-                      </span>
-                      {task.is_today && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onTodayToggle(task.id, false); }}
-                          className="text-xs flex-shrink-0 text-primary" title="Remove from today"
-                        >
-                          *
-                        </button>
-                      )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteTask(task.id);
-                        }}
-                        className="flex-shrink-0 text-muted-foreground/0 group-hover/task:text-muted-foreground
-                                   hover:!text-destructive transition-colors text-xs px-0.5"
-                        title="Delete task"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-
-                  {/* Add task input */}
-                  {addingTaskFor === sp.id ? (
-                    <div className="pl-4 pr-2 py-1">
-                      <input
-                        type="text"
-                        value={newTaskTitle}
-                        onChange={(e) => setNewTaskTitle(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleAddTask(sp.id);
-                          if (e.key === 'Escape') { setNewTaskTitle(''); setAddingTaskFor(null); }
-                        }}
-                        placeholder="Task title..."
-                        className="w-full bg-input border border-border rounded px-2 py-1 text-sm
-                                   focus:border-primary focus:outline-none text-foreground"
-                        autoFocus
-                      />
-                    </div>
-                  ) : (
-                    <button
-                      data-add-task
-                      onClick={() => { onSelectSub(sp.id); setAddingTaskFor(sp.id); }}
-                      className="pl-4 pr-2 py-1 text-xs text-muted-foreground hover:text-foreground
-                                 transition-colors text-left w-full"
-                    >
-                      + Add task <span className="text-muted-foreground/50 ml-1">T</span>
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Show task previews for non-selected sub-projects */}
-              {!isCollapsed && !isSelected && sp.preview_tasks && sp.preview_tasks.length > 0 && (
-                <div className="ml-3 border-l border-border/50">
-                  {sp.preview_tasks.map((pt, i) => (
-                    <div
-                      key={i}
-                      onClick={() => onSelectSub(sp.id)}
-                      className="flex items-center gap-1.5 pl-4 pr-2 py-1 cursor-pointer text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <span className="flex-shrink-0">{statusIcon(pt.status)}</span>
-                      <span className="truncate">{pt.title}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={subProjects.map(sp => sp.id)} strategy={verticalListSortingStrategy}>
+            {subProjects.map((sp) => (
+              <SortableSubProject
+                key={sp.id}
+                sp={sp}
+                isSelected={selectedSubId === sp.id}
+                isCollapsed={collapsedSubs.has(sp.id)}
+                tasks={selectedSubId === sp.id ? tasks : []}
+                selectedTaskId={selectedTaskId}
+                addingTaskFor={addingTaskFor}
+                newTaskTitle={newTaskTitle}
+                onSelectSub={onSelectSub}
+                onSelectTask={onSelectTask}
+                onToggleCollapse={toggleCollapse}
+                onDeleteSub={onDeleteSub}
+                onStatusChange={onStatusChange}
+                onTodayToggle={onTodayToggle}
+                onDeleteTask={onDeleteTask}
+                onAddTask={handleAddTask}
+                onSetAddingTaskFor={setAddingTaskFor}
+                onSetNewTaskTitle={setNewTaskTitle}
+              />
+            ))}
+          </SortableContext>
+        </DndContext>
       </div>
+    </div>
+  );
+}
+
+function SortableSubProject({
+  sp,
+  isSelected,
+  isCollapsed,
+  tasks: subTasks,
+  selectedTaskId,
+  addingTaskFor,
+  newTaskTitle,
+  onSelectSub,
+  onSelectTask,
+  onToggleCollapse,
+  onDeleteSub,
+  onStatusChange,
+  onTodayToggle,
+  onDeleteTask,
+  onAddTask,
+  onSetAddingTaskFor,
+  onSetNewTaskTitle,
+}: {
+  sp: ISubProjectWithStats;
+  isSelected: boolean;
+  isCollapsed: boolean;
+  tasks: ITask[];
+  selectedTaskId: string | null;
+  addingTaskFor: string | null;
+  newTaskTitle: string;
+  onSelectSub: (subId: string) => void;
+  onSelectTask: (taskId: string) => void;
+  onToggleCollapse: (subId: string) => void;
+  onDeleteSub: (subId: string) => void;
+  onStatusChange: (taskId: string, status: TaskStatus) => void;
+  onTodayToggle: (taskId: string, isToday: boolean) => void;
+  onDeleteTask: (taskId: string) => void;
+  onAddTask: (subId: string) => void;
+  onSetAddingTaskFor: (subId: string | null) => void;
+  onSetNewTaskTitle: (title: string) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: sp.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="mb-0.5">
+      {/* Sub-project node */}
+      <div
+        onClick={() => {
+          onSelectSub(sp.id);
+          if (isCollapsed) onToggleCollapse(sp.id);
+        }}
+        className={`flex items-center gap-1.5 px-2 py-1.5 cursor-pointer transition-colors group text-sm ${
+          isSelected
+            ? 'text-foreground'
+            : 'text-muted-foreground hover:text-foreground'
+        }`}
+      >
+        {/* Drag handle */}
+        <span
+          {...attributes}
+          {...listeners}
+          className="w-4 h-4 flex items-center justify-center text-xs text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing flex-shrink-0"
+          title="Drag to reorder"
+          onClick={(e) => e.stopPropagation()}
+        >
+          ⠿
+        </span>
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleCollapse(sp.id); }}
+          className="w-4 h-4 flex items-center justify-center text-xs text-muted-foreground flex-shrink-0"
+        >
+          {isCollapsed ? '\u25B6' : '\u25BC'}
+        </button>
+        <span className={`flex-1 truncate font-medium ${isSelected ? 'text-primary' : ''}`}>
+          {sp.name}
+        </span>
+        <div className="flex items-center gap-1.5">
+          {sp.task_count > 0 && (
+            <span className="text-xs text-muted-foreground tabular-nums">{sp.task_count}</span>
+          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); onDeleteSub(sp.id); }}
+            className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+          >
+            x
+          </button>
+        </div>
+      </div>
+
+      {/* Tasks (children) */}
+      {!isCollapsed && isSelected && (
+        <div className="ml-3 border-l border-border/50">
+          {subTasks.length === 0 && !addingTaskFor && (
+            <div className="text-xs text-muted-foreground py-2 pl-4">
+              No tasks
+            </div>
+          )}
+          {subTasks.map((task) => (
+            <div
+              key={task.id}
+              onClick={() => onSelectTask(task.id)}
+              className={`group/task flex items-center gap-1.5 pl-4 pr-2 py-1.5 cursor-pointer transition-colors text-sm border-l-2 ${
+                selectedTaskId === task.id
+                  ? 'bg-card-hover border-l-primary'
+                  : 'border-l-transparent hover:bg-card-hover/50'
+              }`}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const nextStatus = getNextStatus(task.status);
+                  onStatusChange(task.id, nextStatus);
+                }}
+                className="flex-shrink-0 text-sm"
+                title={`Status: ${task.status}`}
+              >
+                {statusIcon(task.status)}
+              </button>
+              <span className={`tree-priority-dot ${PRIORITY_COLORS[task.priority]}`} />
+              <span className={`flex-1 truncate ${task.status === 'done' ? 'text-muted-foreground line-through' : ''}`}>
+                {task.title}
+              </span>
+              {task.is_today && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onTodayToggle(task.id, false); }}
+                  className="text-xs flex-shrink-0 text-primary" title="Remove from today"
+                >
+                  *
+                </button>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteTask(task.id);
+                }}
+                className="flex-shrink-0 text-muted-foreground/0 group-hover/task:text-muted-foreground
+                           hover:!text-destructive transition-colors text-xs px-0.5"
+                title="Delete task"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+
+          {/* Add task input */}
+          {addingTaskFor === sp.id ? (
+            <div className="pl-4 pr-2 py-1">
+              <input
+                type="text"
+                value={newTaskTitle}
+                onChange={(e) => onSetNewTaskTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') onAddTask(sp.id);
+                  if (e.key === 'Escape') { onSetNewTaskTitle(''); onSetAddingTaskFor(null); }
+                }}
+                placeholder="Task title..."
+                className="w-full bg-input border border-border rounded px-2 py-1 text-sm
+                           focus:border-primary focus:outline-none text-foreground"
+                autoFocus
+              />
+            </div>
+          ) : (
+            <button
+              data-add-task
+              onClick={() => { onSelectSub(sp.id); onSetAddingTaskFor(sp.id); }}
+              className="pl-4 pr-2 py-1 text-xs text-muted-foreground hover:text-foreground
+                         transition-colors text-left w-full"
+            >
+              + Add task <span className="text-muted-foreground/50 ml-1">T</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Show task previews for non-selected sub-projects */}
+      {!isCollapsed && !isSelected && sp.preview_tasks && sp.preview_tasks.length > 0 && (
+        <div className="ml-3 border-l border-border/50">
+          {sp.preview_tasks.map((pt, i) => (
+            <div
+              key={i}
+              onClick={() => onSelectSub(sp.id)}
+              className="flex items-center gap-1.5 pl-4 pr-2 py-1 cursor-pointer text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <span className="flex-shrink-0">{statusIcon(pt.status)}</span>
+              <span className="truncate">{pt.title}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

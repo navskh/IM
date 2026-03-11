@@ -160,9 +160,9 @@ export default function TaskDetail({
               onBlur={saveDescription}
               placeholder="Background, conditions, notes..."
               className="w-full bg-input border border-border rounded-lg px-3 py-2.5 text-sm
-                         focus:border-primary focus:outline-none text-foreground resize-none min-h-[60px]
+                         focus:border-primary focus:outline-none text-foreground resize-y min-h-[60px]
                          leading-relaxed"
-              rows={2}
+              rows={3}
             />
           </div>
 
