@@ -63,6 +63,14 @@ export interface ITaskConversation {
   created_at: string;
 }
 
+export interface IGitSyncResult {
+  projectId: string;
+  projectName: string;
+  projectPath: string;
+  status: 'success' | 'error' | 'no-git' | 'no-path';
+  message: string;
+}
+
 export interface ISubProjectWithStats extends ISubProject {
   task_count: number;
   active_count: number;

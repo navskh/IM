@@ -8,7 +8,8 @@ import TaskDetail from '@/components/task/TaskDetail';
 import DirectoryPicker from '@/components/DirectoryPicker';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import AiPolicyModal from '@/components/ui/AiPolicyModal';
-import type { ISubProject, ITask, TaskStatus, ISubProjectWithStats } from '@/types';
+import GitSyncResultsModal from '@/components/dashboard/GitSyncResultsModal';
+import type { ISubProject, ITask, TaskStatus, ISubProjectWithStats, IGitSyncResult } from '@/types';
 
 interface IProject {
   id: string;
@@ -58,6 +59,10 @@ export default function WorkspacePanel({
   const [showBrainstorm, setShowBrainstorm] = useState(true);
   const [newSubName, setNewSubName] = useState('');
   const [showAiPolicy, setShowAiPolicy] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResults, setSyncResults] = useState<IGitSyncResult[] | null>(null);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const syncingRef = useRef(false);
 
   // Resizable panel widths
   const [leftWidth, setLeftWidth] = useState(500);
@@ -279,6 +284,35 @@ export default function WorkspacePanel({
     }
   };
 
+  const handleGitSync = useCallback(async (silent = false) => {
+    if (syncingRef.current) return;
+    syncingRef.current = true;
+    if (!silent) setSyncing(true);
+    try {
+      const res = await fetch(`/api/projects/${id}/git-sync`, { method: 'POST' });
+      if (res.ok) {
+        const results: IGitSyncResult[] = await res.json();
+        setLastSyncTime(new Date());
+        if (!silent) {
+          setSyncResults(results);
+        }
+      }
+    } catch {
+      // silent fail
+    } finally {
+      syncingRef.current = false;
+      if (!silent) setSyncing(false);
+    }
+  }, [id]);
+
+  // Auto git-sync every 30 minutes
+  useEffect(() => {
+    if (!project?.project_path) return;
+    const INTERVAL_MS = 30 * 60 * 1000;
+    const timer = setInterval(() => handleGitSync(true), INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [project?.project_path, handleGitSync]);
+
   const handleToggleWatch = async () => {
     if (!project) return;
     const res = await fetch(`/api/projects/${id}`, {
@@ -370,7 +404,24 @@ export default function WorkspacePanel({
             }`}>
             AI Policy{project.ai_context ? ' *' : ''}
           </button>
-          {!project.project_path && (
+          {project.project_path ? (
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => handleGitSync(false)}
+                disabled={syncing}
+                className="px-3 py-1.5 text-xs bg-muted hover:bg-card-hover text-foreground border border-border rounded-md transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                title={lastSyncTime ? `Last sync: ${lastSyncTime.toLocaleTimeString()}` : 'Git pull'}
+              >
+                <span className={syncing ? 'animate-spin' : ''}>&#x21bb;</span>
+                {syncing ? 'Syncing...' : 'Git Sync'}
+              </button>
+              {lastSyncTime && (
+                <span className="text-xs text-muted-foreground">
+                  {lastSyncTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+            </div>
+          ) : (
             <button onClick={() => setShowDirPicker(true)}
               className="px-3 py-1.5 text-xs bg-muted hover:bg-card-hover text-foreground border border-border rounded-md transition-colors">
               Link folder
@@ -450,6 +501,11 @@ export default function WorkspacePanel({
         onConfirm={handleConfirmAction} onCancel={() => setConfirmAction(null)} />
       <AiPolicyModal open={showAiPolicy} content={project.ai_context || ''}
         onSave={handleSaveAiPolicy} onClose={() => setShowAiPolicy(false)} />
+      <GitSyncResultsModal
+        open={!!syncResults}
+        results={syncResults || []}
+        onClose={() => setSyncResults(null)}
+      />
     </div>
   );
 }
