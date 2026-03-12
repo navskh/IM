@@ -1,4 +1,4 @@
-const CACHE_NAME = 'im-v3';
+const CACHE_NAME = 'im-v4';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

@@ -1016,6 +1016,29 @@ textarea:focus {
   margin: 0.5em 0;
 }
 
+.chat-markdown table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.5em 0;
+  font-size: 0.85em;
+}
+
+.chat-markdown th,
+.chat-markdown td {
+  border: 1px solid hsl(var(--border));
+  padding: 4px 8px;
+  text-align: left;
+}
+
+.chat-markdown th {
+  background: hsl(var(--muted));
+  font-weight: 600;
+}
+
+.chat-markdown tr:nth-child(even) {
+  background: hsl(var(--muted) / 0.3);
+}
+
 /* Dialog animation */
 @keyframes dialogIn {
   from { opacity: 0; transform: scale(0.95) translateY(4px); }

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ITaskConversation, TaskStatus } from '@/types';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const POLL_INTERVAL = 3000; // Poll every 3s when task is testing
 
@@ -112,7 +113,7 @@ export default function TaskChat({
                 : 'bg-muted text-foreground rounded-bl-sm chat-markdown'
             }`}>
               {msg.role === 'assistant'
-                ? <ReactMarkdown>{msg.content}</ReactMarkdown>
+                ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                 : msg.content}
             </div>
             {msg.role === 'assistant' && (
