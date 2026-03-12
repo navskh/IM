@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { ITask, TaskStatus, ItemPriority } from '@/types';
 import StatusFlow from './StatusFlow';
 import PromptEditor from './PromptEditor';
@@ -24,20 +24,15 @@ export default function TaskDetail({
   const [promptContent, setPromptContent] = useState('');
   const [refining, setRefining] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
-  const [showChat, setShowChat] = useState(false);
+  const [showPromptModal, setShowPromptModal] = useState(false);
 
   const basePath = `/api/projects/${projectId}/sub-projects/${subProjectId}/tasks/${task.id}`;
-
-  // Auto-show chat when task is being executed by watcher
-  useEffect(() => {
-    if (task.status === 'testing') setShowChat(true);
-  }, [task.status]);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   // Load prompt
   useEffect(() => {
     setTitle(task.title);
     setDescription(task.description);
-    setShowChat(task.status === 'testing');
     fetch(`${basePath}/prompt`)
       .then(r => r.json())
       .then(data => setPromptContent(data.content || ''));
@@ -97,113 +92,128 @@ export default function TaskDetail({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Upper: Task info + Prompt */}
-      <div className={`overflow-y-auto ${showChat ? 'flex-1 min-h-0' : 'flex-1'}`}>
-        <div className="p-4 space-y-4">
-          {/* Title */}
-          <div>
-            {editingTitle ? (
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                onBlur={saveTitle}
-                onKeyDown={(e) => { if (e.key === 'Enter') saveTitle(); if (e.key === 'Escape') { setTitle(task.title); setEditingTitle(false); } }}
-                className="w-full bg-transparent text-xl font-semibold border-b border-primary
-                           focus:outline-none pb-1 text-foreground"
-                autoFocus
-              />
-            ) : (
-              <h2
-                onClick={() => setEditingTitle(true)}
-                className="text-xl font-semibold cursor-text hover:text-primary transition-colors"
-              >
-                {task.title}
-              </h2>
-            )}
-          </div>
-
-          {/* Status + Priority + Today */}
-          <div className="flex items-center gap-4 flex-wrap">
-            <StatusFlow status={task.status} onChange={(status: TaskStatus) => onUpdate({ status })} />
-            <div className="flex items-center gap-1">
-              {priorities.map(p => (
-                <button
-                  key={p}
-                  onClick={() => onUpdate({ priority: p })}
-                  className={`px-2.5 py-1 text-sm rounded transition-colors ${
-                    task.priority === p
-                      ? p === 'high' ? 'bg-destructive/20 text-destructive' : p === 'medium' ? 'bg-warning/20 text-warning' : 'bg-muted text-muted-foreground'
-                      : 'text-muted-foreground/40 hover:text-muted-foreground'
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => onUpdate({ is_today: !task.is_today })}
-              className={`text-sm px-2.5 py-1 rounded transition-colors ${
-                task.is_today
-                  ? 'bg-primary/20 text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {task.is_today ? 'Today *' : 'Mark today'}
-            </button>
-          </div>
-
-          {/* Description */}
-          <div>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              onBlur={saveDescription}
-              placeholder="Background, conditions, notes..."
-              className="w-full bg-input border border-border rounded-lg px-3 py-2.5 text-sm
-                         focus:border-primary focus:outline-none text-foreground resize-y min-h-[60px]
-                         leading-relaxed"
-              rows={3}
-            />
-          </div>
-
-          {/* Prompt */}
-          <PromptEditor
-            content={promptContent}
-            onSave={savePrompt}
-            onRefine={handleRefine}
-            refining={refining}
+      {/* Compact header: Title + Status + Actions */}
+      <div className="px-4 py-3 border-b border-border flex-shrink-0 space-y-2">
+        {/* Title */}
+        {editingTitle ? (
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={saveTitle}
+            onKeyDown={(e) => { if (e.key === 'Enter') saveTitle(); if (e.key === 'Escape') { setTitle(task.title); setEditingTitle(false); } }}
+            className="w-full bg-transparent text-lg font-semibold border-b border-primary
+                       focus:outline-none pb-1 text-foreground"
+            autoFocus
           />
+        ) : (
+          <h2
+            onClick={() => setEditingTitle(true)}
+            className="text-lg font-semibold cursor-text hover:text-primary transition-colors"
+          >
+            {task.title}
+          </h2>
+        )}
 
-          {/* Actions */}
-          <div className="pt-4 border-t border-border flex items-center justify-between">
-            <button
-              onClick={() => setShowChat(!showChat)}
-              className={`text-xs px-2.5 py-1 rounded-md transition-colors border ${
-                showChat
-                  ? 'bg-accent/20 text-accent border-accent/30'
-                  : 'text-muted-foreground hover:text-foreground border-border hover:border-muted-foreground'
-              }`}
-            >
-              {showChat ? 'Hide AI Chat' : 'AI Chat'}
-            </button>
-            <button
-              onClick={onDelete}
-              className="text-xs text-muted-foreground hover:text-destructive transition-colors"
-            >
-              Delete task
-            </button>
+        {/* Status + Priority + Today + Prompt + Delete */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <StatusFlow status={task.status} onChange={(status: TaskStatus) => onUpdate({ status })} />
+          <div className="flex items-center gap-1">
+            {priorities.map(p => (
+              <button
+                key={p}
+                onClick={() => onUpdate({ priority: p })}
+                className={`px-2 py-0.5 text-xs rounded transition-colors ${
+                  task.priority === p
+                    ? p === 'high' ? 'bg-destructive/20 text-destructive' : p === 'medium' ? 'bg-warning/20 text-warning' : 'bg-muted text-muted-foreground'
+                    : 'text-muted-foreground/40 hover:text-muted-foreground'
+                }`}
+              >
+                {p}
+              </button>
+            ))}
           </div>
+          <button
+            onClick={() => onUpdate({ is_today: !task.is_today })}
+            className={`text-xs px-2 py-0.5 rounded transition-colors ${
+              task.is_today
+                ? 'bg-primary/20 text-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {task.is_today ? 'Today *' : 'Mark today'}
+          </button>
+
+          <span className="text-border">|</span>
+
+          <button
+            onClick={() => setShowPromptModal(true)}
+            className={`text-xs px-2 py-0.5 rounded transition-colors border ${
+              promptContent
+                ? 'bg-accent/15 text-accent border-accent/30 hover:bg-accent/25'
+                : 'text-muted-foreground border-border hover:text-foreground hover:border-muted-foreground'
+            }`}
+          >
+            Prompt{promptContent ? ' *' : ''}
+          </button>
+
+          <button
+            onClick={onDelete}
+            className="text-xs text-muted-foreground hover:text-destructive transition-colors ml-auto"
+          >
+            Delete
+          </button>
         </div>
+
+        {/* Description - compact */}
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          onBlur={saveDescription}
+          placeholder="Background, conditions, notes..."
+          className="w-full bg-input border border-border rounded-lg px-3 py-2 text-sm
+                     focus:border-primary focus:outline-none text-foreground resize-none
+                     leading-relaxed"
+          rows={2}
+        />
       </div>
 
-      {/* Lower: AI Chat */}
-      {showChat && (
-        <div className="h-[45%] flex-shrink-0">
-          <TaskChat
-            basePath={basePath}
-            taskStatus={task.status}
-            onApplyToPrompt={handleApplyToPrompt}
-          />
+      {/* AI Chat - takes remaining space */}
+      <div className="flex-1 min-h-0">
+        <TaskChat
+          basePath={basePath}
+          taskStatus={task.status}
+          onApplyToPrompt={handleApplyToPrompt}
+        />
+      </div>
+
+      {/* Prompt Modal */}
+      {showPromptModal && (
+        <div
+          ref={overlayRef}
+          onClick={(e) => { if (e.target === overlayRef.current) setShowPromptModal(false); }}
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)' }}
+        >
+          <div className="bg-card border border-border rounded-xl shadow-2xl shadow-black/40
+                          w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col animate-dialog-in">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+              <h3 className="text-sm font-semibold text-foreground">Prompt</h3>
+              <button
+                onClick={() => setShowPromptModal(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+              >
+                Close
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5">
+              <PromptEditor
+                content={promptContent}
+                onSave={savePrompt}
+                onRefine={handleRefine}
+                refining={refining}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>
