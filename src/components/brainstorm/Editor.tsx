@@ -57,7 +57,7 @@ export default function Editor({ projectId, onCollapse }: EditorProps) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-        <h2 className="text-sm font-medium text-muted-foreground">브레인스토밍</h2>
+        <h2 className="text-sm font-medium text-muted-foreground">BRAINSTORMING</h2>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">
             {saving ? '저장 중...' : content ? '저장됨' : ''}
