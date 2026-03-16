@@ -20,6 +20,15 @@ import { CSS } from '@dnd-kit/utilities';
 import type { ITask, ISubProjectWithStats, TaskStatus } from '@/types';
 import { statusIcon } from './StatusFlow';
 
+function subProjectStatus(sp: ISubProjectWithStats): { dotClass: string; label: string; title: string } | null {
+  if (sp.task_count === 0) return null;
+  if (sp.problem_count > 0) return { dotClass: 'bg-destructive', label: `${sp.problem_count}!`, title: `${sp.problem_count} problem` };
+  if (sp.done_count === sp.task_count) return { dotClass: 'bg-success', label: `${sp.done_count}/${sp.task_count}`, title: 'All done' };
+  if (sp.done_count > 0) return { dotClass: 'bg-primary', label: `${sp.done_count}/${sp.task_count}`, title: `${sp.done_count} done, ${sp.active_count} active` };
+  if (sp.active_count > 0) return { dotClass: 'bg-warning', label: `${sp.active_count}`, title: `${sp.active_count} in progress` };
+  return null;
+}
+
 const PRIORITY_COLORS: Record<string, string> = {
   high: 'bg-destructive',
   medium: 'bg-warning',
@@ -100,13 +109,25 @@ export default function ProjectTree({
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-3 py-2 border-b border-border flex-shrink-0">
         <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Projects</h2>
-        <button
-          onClick={onCreateSub}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-          title="Add sub-project (N)"
-        >
-          + <span className="text-muted-foreground/50">N</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const allCollapsed = subProjects.length > 0 && subProjects.every(sp => collapsedSubs.has(sp.id));
+              setCollapsedSubs(allCollapsed ? new Set() : new Set(subProjects.map(sp => sp.id)));
+            }}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            title={subProjects.length > 0 && subProjects.every(sp => collapsedSubs.has(sp.id)) ? 'Expand all' : 'Collapse all'}
+          >
+            {subProjects.length > 0 && subProjects.every(sp => collapsedSubs.has(sp.id)) ? '\u25B6' : '\u25BC'}
+          </button>
+          <button
+            onClick={onCreateSub}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            title="Add sub-project (N)"
+          >
+            + <span className="text-muted-foreground/50">N</span>
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto py-1">
@@ -205,8 +226,12 @@ function SortableSubProject({
       {/* Sub-project node */}
       <div
         onClick={() => {
-          onSelectSub(sp.id);
-          if (isCollapsed) onToggleCollapse(sp.id);
+          if (isSelected) {
+            onToggleCollapse(sp.id);
+          } else {
+            onSelectSub(sp.id);
+            if (isCollapsed) onToggleCollapse(sp.id);
+          }
         }}
         className={`flex items-center gap-1.5 px-2 py-1.5 cursor-pointer transition-colors group text-sm ${
           isSelected
@@ -230,6 +255,11 @@ function SortableSubProject({
         >
           {isCollapsed ? '\u25B6' : '\u25BC'}
         </button>
+        {(() => {
+          const st = subProjectStatus(sp);
+          if (!st) return null;
+          return <span className={`w-2 h-2 rounded-full ${st.dotClass} flex-shrink-0`} title={st.title} />;
+        })()}
         <span className={`flex-1 truncate font-medium ${isSelected ? 'text-primary' : ''}`}>
           {sp.name}
         </span>

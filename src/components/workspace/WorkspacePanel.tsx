@@ -9,6 +9,7 @@ import DirectoryPicker from '@/components/DirectoryPicker';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import AiPolicyModal from '@/components/ui/AiPolicyModal';
 import GitSyncResultsModal from '@/components/dashboard/GitSyncResultsModal';
+import FileTreeDrawer from '@/components/ui/FileTreeDrawer';
 import type { ISubProject, ITask, TaskStatus, ISubProjectWithStats, IGitSyncResult } from '@/types';
 
 interface IProject {
@@ -62,6 +63,7 @@ export default function WorkspacePanel({
   const [syncing, setSyncing] = useState(false);
   const [syncResults, setSyncResults] = useState<IGitSyncResult[] | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const [showFileTree, setShowFileTree] = useState(false);
   const syncingRef = useRef(false);
 
   // Resizable panel widths
@@ -380,9 +382,18 @@ export default function WorkspacePanel({
           <span className="text-border">|</span>
           <h1 className="text-sm font-semibold">{project.name}</h1>
           {project.project_path && (
-            <span className="text-xs text-muted-foreground font-mono truncate max-w-48" title={project.project_path}>
-              {project.project_path}
-            </span>
+            <>
+              <span className="text-xs text-muted-foreground font-mono truncate max-w-48" title={project.project_path}>
+                {project.project_path}
+              </span>
+              <button
+                onClick={() => setShowFileTree(true)}
+                className="text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors px-1.5 py-0.5 rounded"
+                title="View file tree"
+              >
+                {'\uD83D\uDCC2'}
+              </button>
+            </>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -506,6 +517,12 @@ export default function WorkspacePanel({
         results={syncResults || []}
         onClose={() => setSyncResults(null)}
       />
+      {showFileTree && project.project_path && (
+        <FileTreeDrawer
+          rootPath={project.project_path}
+          onClose={() => setShowFileTree(false)}
+        />
+      )}
     </div>
   );
 }

@@ -1048,3 +1048,13 @@ textarea:focus {
 .animate-dialog-in {
   animation: dialogIn 0.15s ease-out;
 }
+
+/* Drawer slide-in from right */
+@keyframes drawerIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-drawer-in {
+  animation: drawerIn 0.2s ease-out;
+}

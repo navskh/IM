@@ -7,6 +7,18 @@ import remarkGfm from 'remark-gfm';
 
 const POLL_INTERVAL = 3000; // Poll every 3s when task is testing
 
+function notifyAiResponse(preview: string) {
+  // Only notify when window/tab is not focused
+  if (document.hasFocus()) return;
+
+  if (Notification.permission === 'granted') {
+    new Notification('IM - AI Response', {
+      body: preview.slice(0, 120),
+      icon: '/icon-192.png',
+    });
+  }
+}
+
 export default function TaskChat({
   basePath,
   taskStatus,
@@ -21,6 +33,13 @@ export default function TaskChat({
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Request notification permission on mount
+  useEffect(() => {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
 
   const fetchMessages = useCallback(() => {
     fetch(`${basePath}/chat`)
@@ -73,6 +92,9 @@ export default function TaskChat({
           const withoutTemp = prev.filter(m => m.id !== tempId);
           return [...withoutTemp, data.userMessage, data.aiMessage];
         });
+        if (data.aiMessage?.content) {
+          notifyAiResponse(data.aiMessage.content);
+        }
       }
     } catch { /* silent */ }
     setLoading(false);
