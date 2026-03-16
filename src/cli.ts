@@ -64,11 +64,19 @@ program
     console.log(`\n  IM - Idea Manager v2`);
     console.log(`  Starting on http://localhost:${port}\n`);
 
-    const nextBin = path.join(PKG_ROOT, 'node_modules', '.bin', 'next');
-    const child = spawn(nextBin, ['dev', '-p', port], {
+    // Resolve next CLI directly — avoids .bin symlink issues on Windows
+    // and npm global install hoisting issues
+    let nextCli: string;
+    try {
+      nextCli = require.resolve('next/dist/bin/next', { paths: [PKG_ROOT] });
+    } catch {
+      // Fallback: try to find next package manually
+      nextCli = path.join(PKG_ROOT, 'node_modules', 'next', 'dist', 'bin', 'next');
+    }
+
+    const child = spawn(process.execPath, [nextCli, 'dev', '-p', port], {
       cwd: PKG_ROOT,
       stdio: 'inherit',
-      shell: true,
       env: { ...process.env, NODE_ENV: 'development' },
     });
 

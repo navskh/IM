@@ -1,6 +1,6 @@
 {
   "name": "idea-manager",
-  "version": "0.8.3",
+  "version": "0.8.4",
   "description": "AI 기반 브레인스토밍 → 구조화 → 프롬프트 생성 도구. MCP Server 내장.",
   "keywords": [
     "brainstorm",
