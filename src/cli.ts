@@ -68,6 +68,7 @@ program
     const child = spawn(nextBin, ['dev', '-p', port], {
       cwd: PKG_ROOT,
       stdio: 'inherit',
+      shell: true,
       env: { ...process.env, NODE_ENV: 'development' },
     });
 
