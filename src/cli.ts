@@ -190,7 +190,7 @@ const syncCmd = program
   .command('sync')
   .description('Sync data via GitHub repository')
   .action(async () => {
-    const { syncStatus } = await import('./lib/sync');
+    const { syncStatus } = await import('./lib/sync/index');
     await syncStatus();
   });
 
@@ -198,7 +198,7 @@ syncCmd
   .command('init')
   .description('Initialize sync with a GitHub repository')
   .action(async () => {
-    const { syncInit } = await import('./lib/sync');
+    const { syncInit } = await import('./lib/sync/index');
     await syncInit();
   });
 
@@ -207,7 +207,7 @@ syncCmd
   .description('Export data and push to GitHub')
   .option('-m, --message <msg>', 'Custom commit message')
   .action(async (opts) => {
-    const { syncPush } = await import('./lib/sync');
+    const { syncPush } = await import('./lib/sync/index');
     await syncPush(opts.message);
   });
 
@@ -216,7 +216,7 @@ syncCmd
   .description('Pull from GitHub and import data')
   .option('--no-backup', 'Skip database backup before import')
   .action(async (opts) => {
-    const { syncPull } = await import('./lib/sync');
+    const { syncPull } = await import('./lib/sync/index');
     await syncPull({ backup: opts.backup });
   });
 
