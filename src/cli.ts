@@ -111,27 +111,46 @@ program
 
 program
   .command('start')
-  .description('Start the web UI (Next.js dev server on port 3456)')
+  .description('Start the web UI on port 3456')
   .option('-p, --port <port>', 'Port number', '3456')
   .action(async (opts) => {
     const port = opts.port;
-    console.log(`\n  IM - Idea Manager v2`);
-    console.log(`  Starting on http://localhost:${port}\n`);
+    const fs = await import('fs');
 
-    // Resolve next CLI directly — avoids .bin symlink issues on Windows
-    // and npm global install hoisting issues
+    // Resolve next CLI
     let nextCli: string;
     try {
       nextCli = require.resolve('next/dist/bin/next', { paths: [PKG_ROOT] });
     } catch {
-      // Fallback: try to find next package manually
       nextCli = path.join(PKG_ROOT, 'node_modules', 'next', 'dist', 'bin', 'next');
     }
 
-    const child = spawn(process.execPath, [nextCli, 'dev', '-p', port], {
+    // Build if not already built
+    const buildDir = path.join(PKG_ROOT, '.next');
+    if (!fs.existsSync(buildDir)) {
+      console.log('\n  IM - First run: building... (this may take a minute)\n');
+      const buildResult = spawn(process.execPath, [nextCli, 'build'], {
+        cwd: PKG_ROOT,
+        stdio: 'inherit',
+        env: { ...process.env, NODE_ENV: 'production' },
+      });
+      await new Promise<void>((resolve, reject) => {
+        buildResult.on('exit', (code) => {
+          if (code !== 0) reject(new Error(`Build failed with code ${code}`));
+          else resolve();
+        });
+        buildResult.on('error', reject);
+      });
+    }
+
+    console.log(`\n  IM - Idea Manager`);
+    console.log(`  Starting on http://localhost:${port}\n`);
+
+    // Run production server (next start)
+    const child = spawn(process.execPath, [nextCli, 'start', '-p', port], {
       cwd: PKG_ROOT,
       stdio: 'inherit',
-      env: { ...process.env, NODE_ENV: 'development' },
+      env: { ...process.env, NODE_ENV: 'production' },
     });
 
     child.on('error', (err) => {
