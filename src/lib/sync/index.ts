@@ -78,21 +78,31 @@ export async function syncInit() {
     }
   }
 
-  // Clean sync dir and clone
+  // Clone into a temp dir, then move contents to sync dir
   console.log(`\n  Cloning to ${syncDir}...`);
+  const tmpCloneDir = syncDir + '-tmp-' + Date.now();
+  let cloned = false;
+
   try {
-    // Remove sync dir contents (keep the dir itself)
-    const entries = fs.readdirSync(syncDir);
-    for (const e of entries) {
+    await git.gitClone(repoUrl, tmpCloneDir);
+    // Move contents from tmp to sync dir
+    const entries = fs.readdirSync(tmpCloneDir, { withFileTypes: true });
+    // Clean sync dir first
+    for (const e of fs.readdirSync(syncDir)) {
       fs.rmSync(path.join(syncDir, e), { recursive: true, force: true });
     }
-
-    await git.gitClone(repoUrl, syncDir);
+    for (const e of entries) {
+      fs.renameSync(path.join(tmpCloneDir, e.name), path.join(syncDir, e.name));
+    }
+    fs.rmSync(tmpCloneDir, { recursive: true, force: true });
+    cloned = true;
   } catch {
-    // Clone into existing empty dir — init + add remote instead
+    // Clone failed — init locally + add remote
+    fs.rmSync(tmpCloneDir, { recursive: true, force: true });
     try {
       await git.gitInit(syncDir);
       await git.gitAddRemote(syncDir, repoUrl);
+      cloned = true;
     } catch (err2) {
       console.error(`  Failed: ${(err2 as Error).message}\n`);
       process.exit(1);

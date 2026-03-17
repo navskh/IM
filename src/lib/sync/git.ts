@@ -4,10 +4,12 @@ import path from 'path';
 
 function quoteArg(arg: string): string {
   // Quote args with spaces for shell mode
-  if (arg.includes(' ') || arg.includes('"')) {
-    return `"${arg.replace(/"/g, '\\"')}"`;
+  if (!arg.includes(' ') && !arg.includes('"')) return arg;
+  if (process.platform === 'win32') {
+    // cmd.exe uses "" to escape quotes
+    return `"${arg.replace(/"/g, '""')}"`;
   }
-  return arg;
+  return `"${arg.replace(/"/g, '\\"')}"`;
 }
 
 function exec(cmd: string, args: string[], cwd?: string): Promise<string> {

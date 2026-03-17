@@ -11,9 +11,15 @@ import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const PKG_ROOT = path.resolve(__dirname, '..');
+// Resolve PKG_ROOT robustly across macOS/Windows and tsx/cjs context
+let PKG_ROOT: string;
+try {
+  const thisFile = fileURLToPath(import.meta.url);
+  PKG_ROOT = path.resolve(path.dirname(thisFile), '..');
+} catch {
+  // Fallback for CJS context (tsx/cjs on some Windows setups)
+  PKG_ROOT = path.resolve(__dirname, '..');
+}
 
 async function openAsApp(url: string) {
   const { exec: execCb } = await import('child_process');
@@ -29,8 +35,8 @@ async function openAsApp(url: string) {
         ]
       : platform === 'win32'
         ? [
-            `start "" chrome --app=${url}`,
-            `start "" msedge --app=${url}`,
+            `start "" "chrome" "--app=${url}"`,
+            `start "" "msedge" "--app=${url}"`,
           ]
         : [
             `google-chrome --app=${url}`,
