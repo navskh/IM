@@ -15,6 +15,45 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PKG_ROOT = path.resolve(__dirname, '..');
 
+async function openAsApp(url: string) {
+  const { exec: execCb } = await import('child_process');
+  const platform = process.platform;
+
+  // Shell commands for --app mode per platform
+  const commands: string[] =
+    platform === 'darwin'
+      ? [
+          `open -a "Google Chrome" --args --app=${url}`,
+          `open -a "Microsoft Edge" --args --app=${url}`,
+          `open -a "Chromium" --args --app=${url}`,
+        ]
+      : platform === 'win32'
+        ? [
+            `start "" chrome --app=${url}`,
+            `start "" msedge --app=${url}`,
+          ]
+        : [
+            `google-chrome --app=${url}`,
+            `chromium-browser --app=${url}`,
+            `microsoft-edge --app=${url}`,
+          ];
+
+  for (const cmd of commands) {
+    try {
+      await new Promise<void>((resolve, reject) => {
+        execCb(cmd, (err) => { if (err) reject(err); else resolve(); });
+      });
+      return; // success
+    } catch {
+      continue; // try next browser
+    }
+  }
+
+  // Fallback: open normally
+  const open = (await import('open')).default;
+  await open(url);
+}
+
 const program = new Command();
 
 program
@@ -87,8 +126,7 @@ program
 
     setTimeout(async () => {
       try {
-        const open = (await import('open')).default;
-        await open(`http://localhost:${port}`);
+        await openAsApp(`http://localhost:${port}`);
       } catch { /* ignore */ }
     }, 3000);
 
