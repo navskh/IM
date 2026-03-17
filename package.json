@@ -1,14 +1,18 @@
 {
   "name": "idea-manager",
-  "version": "0.9.6",
-  "description": "AI 기반 브레인스토밍 → 구조화 → 프롬프트 생성 도구. MCP Server 내장.",
+  "version": "0.9.7",
+  "description": "Turn free-form brainstorming into structured task trees with AI-generated prompts. Built-in MCP Server for autonomous AI agent execution. Local-first with SQLite, cross-PC sync via Git.",
   "keywords": [
     "brainstorm",
     "ai",
     "mcp",
     "idea",
+    "task-manager",
+    "prompt",
     "structuring",
-    "prompt"
+    "project-management",
+    "sqlite",
+    "local-first"
   ],
   "author": "navskh",
   "license": "MIT",
