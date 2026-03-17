@@ -1,3 +1,5 @@
+export type AgentType = 'claude' | 'gemini' | 'codex';
+
 export interface IProject {
   id: string;
   name: string;
@@ -5,6 +7,7 @@ export interface IProject {
   project_path: string | null;
   ai_context: string;
   watch_enabled: boolean;
+  agent_type: AgentType;
   created_at: string;
   updated_at: string;
 }

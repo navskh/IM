@@ -1,48 +1,41 @@
 import { spawn } from 'node:child_process';
-
-const CLI_PATH = 'claude';
-const DEFAULT_ARGS = ['--dangerously-skip-permissions'];
-const MODEL = 'sonnet';
-const MAX_TURNS = 80;
+import { AGENTS } from './agents';
+import type { AgentType } from '../../types';
 
 export type OnTextChunk = (text: string) => void;
 export type OnRawEvent = (event: Record<string, unknown>) => void;
 
-export interface RunClaudeOptions {
+export interface RunAgentOptions {
   cwd?: string;
   timeoutMs?: number;
 }
 
 /**
- * Spawn Claude Code CLI and collect the result text.
+ * Spawn an AI CLI agent and collect the result text.
  * Optional onText callback receives streaming text chunks as they arrive.
  */
-export function runClaude(prompt: string, onText?: OnTextChunk, onRawEvent?: OnRawEvent, options?: RunClaudeOptions): Promise<string> {
+export function runAgent(
+  agentType: AgentType,
+  prompt: string,
+  onText?: OnTextChunk,
+  onRawEvent?: OnRawEvent,
+  options?: RunAgentOptions,
+): Promise<string> {
+  const config = AGENTS[agentType];
+  if (!config) {
+    return Promise.reject(new Error(`Unknown agent type: ${agentType}`));
+  }
+
   return new Promise((resolve, reject) => {
     const useStreamJson = !!(onText || onRawEvent);
-    const args = [
-      ...DEFAULT_ARGS,
-      '--model', MODEL,
-      ...(useStreamJson ? ['--output-format', 'stream-json', '--verbose'] : ['--output-format', 'text']),
-      '--max-turns', String(MAX_TURNS),
-      '-p', '-',  // read prompt from stdin
-    ];
+    const args = config.buildArgs({ streaming: useStreamJson });
+    const env = config.buildEnv();
 
-    // Strip Claude Code session env vars to avoid nested session detection
-    const cleanEnv = { ...process.env };
-    delete cleanEnv.CLAUDECODE;
-    delete cleanEnv.CLAUDE_CODE_ENTRYPOINT;
-    delete cleanEnv.CLAUDE_CODE_MAX_OUTPUT_TOKENS;
-    for (const key of Object.keys(cleanEnv)) {
-      if (key.startsWith('CLAUDE_CODE_') || key === 'ANTHROPIC_PARENT_SESSION') {
-        delete cleanEnv[key];
-      }
-    }
-
-    const proc = spawn(CLI_PATH, args, {
+    const proc = spawn(config.binary, args, {
       cwd: options?.cwd || process.cwd(),
       stdio: ['pipe', 'pipe', 'pipe'],
-      env: { ...cleanEnv, FORCE_COLOR: '0' },
+      shell: process.platform === 'win32',
+      env,
     });
 
     // Timeout handling
@@ -62,6 +55,7 @@ export function runClaude(prompt: string, onText?: OnTextChunk, onRawEvent?: OnR
     let buffer = '';
     let resultText = '';
     let stderrText = '';
+    let lastEmittedLength = 0;
 
     if (useStreamJson) {
       // stream-json mode: parse NDJSON events
@@ -77,23 +71,21 @@ export function runClaude(prompt: string, onText?: OnTextChunk, onRawEvent?: OnR
             const parsed = JSON.parse(trimmed);
             onRawEvent?.(parsed);
 
-            if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
-              resultText += parsed.delta.text;
-              onText?.(parsed.delta.text);
-            } else if (parsed.type === 'assistant' && parsed.message?.content) {
-              let fullText = '';
-              for (const block of parsed.message.content) {
-                if (block.type === 'text') fullText += block.text;
+            const event = config.parseStreamEvent(parsed);
+            if (event) {
+              if (event.final) {
+                // Some agents emit cumulative text, emit only new portion
+                if (event.final.length > lastEmittedLength) {
+                  const newPart = event.final.slice(lastEmittedLength);
+                  onText?.(newPart);
+                  lastEmittedLength = event.final.length;
+                }
+                resultText = event.final;
+              } else if (event.text) {
+                resultText += event.text;
+                lastEmittedLength = resultText.length;
+                onText?.(event.text);
               }
-              if (fullText.length > resultText.length) {
-                onText?.(fullText.slice(resultText.length));
-              }
-              resultText = fullText;
-            } else if (parsed.type === 'result' && parsed.result) {
-              if (parsed.result.length > resultText.length) {
-                onText?.(parsed.result.slice(resultText.length));
-              }
-              resultText = parsed.result;
             }
           } catch { /* ignore non-JSON */ }
         }
@@ -110,25 +102,29 @@ export function runClaude(prompt: string, onText?: OnTextChunk, onRawEvent?: OnR
     });
 
     proc.on('error', (err) => {
-      reject(new Error(`Claude CLI error: ${err.message}`));
+      reject(new Error(`${config.name} CLI error: ${err.message}`));
     });
 
     proc.on('exit', (code, signal) => {
       if (timeoutTimer) clearTimeout(timeoutTimer);
-      // Clean up known CLI noise from text output
-      if (!useStreamJson) {
-        resultText = resultText.replace(/Error: Reached max turns \(\d+\)\s*/g, '').trim();
+      if (!useStreamJson && config.cleanOutput) {
+        resultText = config.cleanOutput(resultText);
       }
       if (timedOut) {
-        reject(new Error(`Claude CLI timed out after ${Math.round((options?.timeoutMs || 0) / 1000)}s`));
+        reject(new Error(`${config.name} CLI timed out after ${Math.round((options?.timeoutMs || 0) / 1000)}s`));
         return;
       }
       if (code !== 0 && !resultText) {
         const detail = stderrText.slice(0, 500) || (signal ? `killed by signal ${signal}` : 'no output');
-        reject(new Error(`Claude CLI exited with code ${code}: ${detail}`));
+        reject(new Error(`${config.name} CLI exited with code ${code}: ${detail}`));
         return;
       }
       resolve(resultText);
     });
   });
+}
+
+// Backward compatibility
+export function runClaude(prompt: string, onText?: OnTextChunk, onRawEvent?: OnRawEvent, options?: RunAgentOptions): Promise<string> {
+  return runAgent('claude', prompt, onText, onRawEvent, options);
 }

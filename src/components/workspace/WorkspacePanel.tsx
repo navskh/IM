@@ -19,6 +19,7 @@ interface IProject {
   project_path: string | null;
   ai_context: string;
   watch_enabled: boolean;
+  agent_type: string;
 }
 
 export default function WorkspacePanel({
@@ -397,6 +398,23 @@ export default function WorkspacePanel({
           )}
         </div>
         <div className="flex items-center gap-2">
+          <select
+            value={project.agent_type || 'claude'}
+            onChange={async (e) => {
+              const res = await fetch(`/api/projects/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ agent_type: e.target.value }),
+              });
+              if (res.ok) setProject(await res.json());
+            }}
+            className="px-2 py-1.5 text-xs bg-muted border border-border rounded-md text-foreground cursor-pointer hover:bg-card-hover transition-colors"
+            title="AI Agent"
+          >
+            <option value="claude">Claude</option>
+            <option value="gemini">Gemini</option>
+            <option value="codex">Codex</option>
+          </select>
           <button onClick={handleToggleWatch}
             className={`px-3 py-1.5 text-xs border rounded-md transition-colors flex items-center gap-1.5 ${
               project.watch_enabled

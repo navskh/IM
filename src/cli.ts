@@ -22,7 +22,7 @@ try {
 }
 
 async function openAsApp(url: string) {
-  const { execFile: execFileCb } = await import('child_process');
+  const { spawn: spawnChild } = await import('child_process');
   const fs = await import('fs');
   const platform = process.platform;
 
@@ -47,23 +47,18 @@ async function openAsApp(url: string) {
         ];
 
   for (const browser of browsers) {
-    // On macOS, check binary exists before trying
     if (platform === 'darwin' && !fs.existsSync(browser.bin)) continue;
 
     try {
-      await new Promise<void>((resolve, reject) => {
-        const child = execFileCb(browser.bin, browser.args, {
-          shell: platform === 'win32',
-          detached: true,
-          stdio: 'ignore',
-        }, (err) => { if (err) reject(err); });
-        child.unref();
-        // Browser launched — resolve after brief delay
-        setTimeout(resolve, 500);
+      const child = spawnChild(browser.bin, browser.args, {
+        detached: true,
+        stdio: 'ignore',
+        shell: platform === 'win32',
       });
+      child.unref();
       return; // success
     } catch {
-      continue; // try next browser
+      continue;
     }
   }
 

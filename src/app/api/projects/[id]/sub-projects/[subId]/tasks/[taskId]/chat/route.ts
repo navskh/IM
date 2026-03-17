@@ -4,7 +4,7 @@ import { getTask } from '@/lib/db/queries/tasks';
 import { getTaskPrompt } from '@/lib/db/queries/task-prompts';
 import { getBrainstorm } from '@/lib/db/queries/brainstorms';
 import { getProject } from '@/lib/db/queries/projects';
-import { runClaude } from '@/lib/ai/client';
+import { runAgent } from '@/lib/ai/client';
 
 export async function GET(
   _request: NextRequest,
@@ -55,7 +55,8 @@ ${brainstorm?.content ? `\nBrainstorming context:\n${brainstorm.content.slice(0,
     .join('\n');
 
   try {
-    const aiResponse = await runClaude(`${systemPrompt}\n\nConversation:\n${conversationText}`);
+    const agentType = project?.agent_type || 'claude';
+    const aiResponse = await runAgent(agentType, `${systemPrompt}\n\nConversation:\n${conversationText}`);
     const trimmed = aiResponse.trim();
     if (!trimmed) {
       const fallbackMsg = addTaskConversation(taskId, 'assistant', '(AI 응답을 생성하지 못했습니다. 다시 시도해주세요.)');

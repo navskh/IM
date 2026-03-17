@@ -33,6 +33,9 @@ export function initSchema(db: Database.Database): void {
   if (!projCols.some(c => c.name === 'watch_enabled')) {
     db.exec("ALTER TABLE projects ADD COLUMN watch_enabled INTEGER NOT NULL DEFAULT 0");
   }
+  if (!projCols.some(c => c.name === 'agent_type')) {
+    db.exec("ALTER TABLE projects ADD COLUMN agent_type TEXT NOT NULL DEFAULT 'claude'");
+  }
 
   // v2 tables
   db.exec(`

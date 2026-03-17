@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { runClaude } from './ai/client';
+import { runAgent } from './ai/client';
 import { listProjects, getProject } from './db/queries/projects';
 import { getSubProject } from './db/queries/sub-projects';
 import { getTasksByProject, getTask, updateTask } from './db/queries/tasks';
@@ -121,7 +121,7 @@ async function executeTask(task: ITask, project: IProject, options: WatcherOptio
       }
     };
 
-    const result = await runClaude(fullPrompt, onText, undefined, {
+    const result = await runAgent(project.agent_type || 'claude', fullPrompt, onText, undefined, {
       cwd,
       timeoutMs: options.timeoutMs,
     });

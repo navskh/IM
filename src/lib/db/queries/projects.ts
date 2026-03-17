@@ -1,6 +1,6 @@
 import { getDb } from '../index';
 import { generateId } from '../../utils/id';
-import type { IProject } from '../../../types';
+import type { IProject, AgentType } from '../../../types';
 
 interface ProjectRow {
   id: string;
@@ -9,12 +9,13 @@ interface ProjectRow {
   project_path: string | null;
   ai_context: string;
   watch_enabled: number;
+  agent_type: string;
   created_at: string;
   updated_at: string;
 }
 
 function rowToProject(row: ProjectRow): IProject {
-  return { ...row, watch_enabled: row.watch_enabled === 1 };
+  return { ...row, watch_enabled: row.watch_enabled === 1, agent_type: (row.agent_type || 'claude') as AgentType };
 }
 
 export function listProjects(): IProject[] {
@@ -47,7 +48,7 @@ export function createProject(name: string, description: string = '', projectPat
   return getProject(id)!;
 }
 
-export function updateProject(id: string, data: { name?: string; description?: string; project_path?: string | null; ai_context?: string; watch_enabled?: boolean }): IProject | undefined {
+export function updateProject(id: string, data: { name?: string; description?: string; project_path?: string | null; ai_context?: string; watch_enabled?: boolean; agent_type?: AgentType }): IProject | undefined {
   const db = getDb();
   const project = getProject(id);
   if (!project) return undefined;
@@ -55,13 +56,14 @@ export function updateProject(id: string, data: { name?: string; description?: s
   const now = new Date().toISOString();
 
   db.prepare(
-    'UPDATE projects SET name = ?, description = ?, project_path = ?, ai_context = ?, watch_enabled = ?, updated_at = ? WHERE id = ?'
+    'UPDATE projects SET name = ?, description = ?, project_path = ?, ai_context = ?, watch_enabled = ?, agent_type = ?, updated_at = ? WHERE id = ?'
   ).run(
     data.name ?? project.name,
     data.description ?? project.description,
     data.project_path !== undefined ? data.project_path : project.project_path,
     data.ai_context !== undefined ? data.ai_context : (project.ai_context ?? ''),
     data.watch_enabled !== undefined ? (data.watch_enabled ? 1 : 0) : (project.watch_enabled ? 1 : 0),
+    data.agent_type ?? project.agent_type ?? 'claude',
     now,
     id,
   );
