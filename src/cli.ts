@@ -96,4 +96,38 @@ program
     process.on('SIGTERM', () => { child.kill(); process.exit(0); });
   });
 
+const syncCmd = program
+  .command('sync')
+  .description('Sync data via GitHub repository')
+  .action(async () => {
+    const { syncStatus } = await import('./lib/sync');
+    await syncStatus();
+  });
+
+syncCmd
+  .command('init')
+  .description('Initialize sync with a GitHub repository')
+  .action(async () => {
+    const { syncInit } = await import('./lib/sync');
+    await syncInit();
+  });
+
+syncCmd
+  .command('push')
+  .description('Export data and push to GitHub')
+  .option('-m, --message <msg>', 'Custom commit message')
+  .action(async (opts) => {
+    const { syncPush } = await import('./lib/sync');
+    await syncPush(opts.message);
+  });
+
+syncCmd
+  .command('pull')
+  .description('Pull from GitHub and import data')
+  .option('--no-backup', 'Skip database backup before import')
+  .action(async (opts) => {
+    const { syncPull } = await import('./lib/sync');
+    await syncPull({ backup: opts.backup });
+  });
+
 program.parse();

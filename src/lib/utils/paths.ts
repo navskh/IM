@@ -14,3 +14,12 @@ export function getDataDir(): string {
 export function getDbPath(): string {
   return path.join(getDataDir(), 'im.db');
 }
+
+const SYNC_DIR = path.join(os.homedir(), '.idea-manager', 'sync');
+
+export function getSyncDir(): string {
+  if (!fs.existsSync(SYNC_DIR)) {
+    fs.mkdirSync(SYNC_DIR, { recursive: true });
+  }
+  return SYNC_DIR;
+}
