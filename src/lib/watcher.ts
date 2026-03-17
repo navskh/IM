@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { ensureDb } from './db';
 import { runAgent } from './ai/client';
 import { listProjects, getProject } from './db/queries/projects';
 import { getSubProject } from './db/queries/sub-projects';
@@ -163,6 +164,7 @@ async function executeTask(task: ITask, project: IProject, options: WatcherOptio
 }
 
 export async function startWatcher(options: WatcherOptions): Promise<void> {
+  await ensureDb();
   if (options.projectId) {
     const project = getProject(options.projectId);
     if (!project) {

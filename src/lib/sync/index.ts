@@ -115,7 +115,7 @@ export async function syncInit() {
   // Initial export + push if repo is empty
   if (!fs.existsSync(path.join(syncDir, SYNC_FILE))) {
     console.log('  Performing initial export...');
-    const { tables } = exportToFile(path.join(syncDir, SYNC_FILE));
+    const { tables } = await exportToFile(path.join(syncDir, SYNC_FILE));
     printCounts('Exported', tables);
 
     try {
@@ -142,7 +142,7 @@ export async function syncPush(message?: string) {
 
   // Export
   const filePath = path.join(syncDir, SYNC_FILE);
-  const { tables } = exportToFile(filePath);
+  const { tables } = await exportToFile(filePath);
   printCounts('Exported', tables);
 
   // Commit + push
@@ -194,12 +194,12 @@ export async function syncPull(opts: { backup?: boolean } = {}) {
 
   // Backup
   if (opts.backup !== false) {
-    const backupPath = backupDb();
+    const backupPath = await backupDb();
     console.log(`  Backup: ${backupPath}`);
   }
 
   // Import
-  const { tables } = importFromFile(filePath);
+  const { tables } = await importFromFile(filePath);
   printCounts('Imported', tables);
   console.log('  Done. Refresh the browser to see updated data.\n');
 }

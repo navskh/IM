@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSubProjectsWithStats, createSubProject, reorderSubProjects } from '@/lib/db/queries/sub-projects';
+import { ensureDb } from '@/lib/db';
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  await ensureDb();
   const { id } = await params;
   const subProjects = getSubProjectsWithStats(id);
   return NextResponse.json(subProjects);
@@ -14,6 +16,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  await ensureDb();
   const { id } = await params;
   const body = await request.json();
 
@@ -34,6 +37,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  await ensureDb();
   const { id } = await params;
   const body = await request.json();
 

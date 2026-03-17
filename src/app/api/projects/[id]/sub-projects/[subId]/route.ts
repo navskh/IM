@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSubProject, updateSubProject, deleteSubProject } from '@/lib/db/queries/sub-projects';
+import { ensureDb } from '@/lib/db';
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string; subId: string }> },
 ) {
+  await ensureDb();
   const { subId } = await params;
   const sp = getSubProject(subId);
   if (!sp) {
@@ -17,6 +19,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; subId: string }> },
 ) {
+  await ensureDb();
   const { subId } = await params;
   const body = await request.json();
   const sp = updateSubProject(subId, body);
@@ -30,6 +33,7 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string; subId: string }> },
 ) {
+  await ensureDb();
   const { subId } = await params;
   const deleted = deleteSubProject(subId);
   if (!deleted) {

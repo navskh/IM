@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
+import { ensureDb } from './lib/db';
 import { startMcpServer } from './lib/mcp/server';
 import { listProjects, getProject } from './lib/db/queries/projects';
 import { getSubProjects } from './lib/db/queries/sub-projects';
@@ -78,6 +79,7 @@ program
   .command('mcp')
   .description('Start MCP server (stdio mode)')
   .action(async () => {
+    await ensureDb();
     const ctx: McpToolContext = {
       listProjects,
       getProject,

@@ -1,6 +1,6 @@
 {
   "name": "idea-manager",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Turn free-form brainstorming into structured task trees with AI-generated prompts. Built-in MCP Server for autonomous AI agent execution. Local-first with SQLite, cross-PC sync via Git.",
   "keywords": [
     "brainstorm",
@@ -48,7 +48,6 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@modelcontextprotocol/sdk": "^1.27.1",
-    "better-sqlite3": "^12.6.2",
     "commander": "^14.0.3",
     "nanoid": "^5.1.6",
     "next": "16.1.6",
@@ -57,11 +56,11 @@
     "react-dom": "19.2.3",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
+    "sql.js": "^1.14.1",
     "tsx": "^4.21.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

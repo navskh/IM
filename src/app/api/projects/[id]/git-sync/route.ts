@@ -4,6 +4,7 @@ import { execFile } from 'child_process';
 import { existsSync, readdirSync, statSync } from 'fs';
 import path from 'path';
 import type { IGitSyncResult } from '@/types';
+import { ensureDb } from '@/lib/db';
 
 function gitPull(cwd: string): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
@@ -68,6 +69,7 @@ export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  await ensureDb();
   const { id } = await params;
   const project = getProject(id);
 

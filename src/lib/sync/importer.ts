@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { getDb } from '../db';
+import { ensureDb, getDb } from '../db';
 import { getDbPath } from '../utils/paths';
 
 // Import order: parents first, then children
@@ -7,7 +7,8 @@ const IMPORT_ORDER = ['projects', 'brainstorms', 'sub_projects', 'tasks', 'task_
 // Delete order: children first, then parents
 const DELETE_ORDER = [...IMPORT_ORDER].reverse();
 
-export function backupDb(): string {
+export async function backupDb(): Promise<string> {
+  await ensureDb();
   const dbPath = getDbPath();
   const db = getDb();
   // Flush WAL before backup
@@ -18,7 +19,8 @@ export function backupDb(): string {
   return backupPath;
 }
 
-export function importFromFile(filePath: string): { tables: Record<string, number> } {
+export async function importFromFile(filePath: string): Promise<{ tables: Record<string, number> }> {
+  await ensureDb();
   const raw = fs.readFileSync(filePath, 'utf-8');
   const data = JSON.parse(raw);
 

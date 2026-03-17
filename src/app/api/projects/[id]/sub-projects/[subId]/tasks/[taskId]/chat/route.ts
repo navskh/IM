@@ -5,11 +5,13 @@ import { getTaskPrompt } from '@/lib/db/queries/task-prompts';
 import { getBrainstorm } from '@/lib/db/queries/brainstorms';
 import { getProject } from '@/lib/db/queries/projects';
 import { runAgent } from '@/lib/ai/client';
+import { ensureDb } from '@/lib/db';
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string; subId: string; taskId: string }> },
 ) {
+  await ensureDb();
   const { taskId } = await params;
   const conversations = getTaskConversations(taskId);
   return NextResponse.json(conversations);
@@ -19,6 +21,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; subId: string; taskId: string }> },
 ) {
+  await ensureDb();
   const { id: projectId, taskId } = await params;
   const body = await request.json();
 

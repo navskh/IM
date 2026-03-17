@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTaskPrompt, upsertTaskPrompt } from '@/lib/db/queries/task-prompts';
+import { ensureDb } from '@/lib/db';
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string; subId: string; taskId: string }> },
 ) {
+  await ensureDb();
   const { taskId } = await params;
   const prompt = getTaskPrompt(taskId);
   return NextResponse.json(prompt ?? { content: '', prompt_type: 'manual' });
@@ -14,6 +16,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; subId: string; taskId: string }> },
 ) {
+  await ensureDb();
   const { taskId } = await params;
   const body = await request.json();
 

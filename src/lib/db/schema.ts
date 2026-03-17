@@ -1,6 +1,5 @@
-import type Database from 'better-sqlite3';
-
-export function initSchema(db: Database.Database): void {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function initSchema(db: any): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS projects (
       id TEXT PRIMARY KEY,

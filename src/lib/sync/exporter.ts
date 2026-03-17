@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { getDb } from '../db';
+import { ensureDb, getDb } from '../db';
 
 // v2 active tables
 const V2_TABLES = ['projects', 'brainstorms', 'sub_projects', 'tasks', 'task_prompts', 'task_conversations'];
@@ -9,7 +9,8 @@ function getExistingTables(db: ReturnType<typeof getDb>): string[] {
   return rows.map(r => r.name);
 }
 
-export function exportToFile(filePath: string): { tables: Record<string, number> } {
+export async function exportToFile(filePath: string): Promise<{ tables: Record<string, number> }> {
+  await ensureDb();
   const db = getDb();
   const existingTables = getExistingTables(db);
 

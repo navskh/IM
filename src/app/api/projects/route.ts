@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { listProjects, createProject } from '@/lib/db/queries/projects';
+import { ensureDb } from '@/lib/db';
 
 export async function GET() {
+  await ensureDb();
   const projects = listProjects();
   return NextResponse.json(projects);
 }
 
 export async function POST(request: NextRequest) {
+  await ensureDb();
   const body = await request.json();
   const { name, description } = body;
 

@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getProject, updateProject, deleteProject } from '@/lib/db/queries/projects';
+import { ensureDb } from '@/lib/db';
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  await ensureDb();
   const { id } = await params;
   const project = getProject(id);
   if (!project) {
@@ -17,6 +19,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  await ensureDb();
   const { id } = await params;
   const body = await request.json();
   const project = updateProject(id, body);
@@ -30,6 +33,7 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  await ensureDb();
   const { id } = await params;
   const deleted = deleteProject(id);
   if (!deleted) {

@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTasks, createTask } from '@/lib/db/queries/tasks';
+import { ensureDb } from '@/lib/db';
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string; subId: string }> },
 ) {
+  await ensureDb();
   const { subId } = await params;
   const tasks = getTasks(subId);
   return NextResponse.json(tasks);
@@ -14,6 +16,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; subId: string }> },
 ) {
+  await ensureDb();
   const { id, subId } = await params;
   const body = await request.json();
 

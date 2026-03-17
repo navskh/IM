@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTask, updateTask, deleteTask } from '@/lib/db/queries/tasks';
+import { ensureDb } from '@/lib/db';
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string; subId: string; taskId: string }> },
 ) {
+  await ensureDb();
   const { taskId } = await params;
   const task = getTask(taskId);
   if (!task) {
@@ -17,6 +19,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; subId: string; taskId: string }> },
 ) {
+  await ensureDb();
   const { taskId } = await params;
   const body = await request.json();
   const task = updateTask(taskId, body);
@@ -30,6 +33,7 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string; subId: string; taskId: string }> },
 ) {
+  await ensureDb();
   const { taskId } = await params;
   const deleted = deleteTask(taskId);
   if (!deleted) {
