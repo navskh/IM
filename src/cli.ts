@@ -22,32 +22,44 @@ try {
 }
 
 async function openAsApp(url: string) {
-  const { exec: execCb } = await import('child_process');
+  const { execFile: execFileCb } = await import('child_process');
+  const fs = await import('fs');
   const platform = process.platform;
 
-  // Shell commands for --app mode per platform
-  const commands: string[] =
+  // Direct browser binary paths — avoids macOS `open -a --args` being ignored
+  // when browser is already running
+  const browsers: { bin: string; args: string[] }[] =
     platform === 'darwin'
       ? [
-          `open -a "Google Chrome" --args --app=${url}`,
-          `open -a "Microsoft Edge" --args --app=${url}`,
-          `open -a "Chromium" --args --app=${url}`,
+          { bin: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', args: [`--app=${url}`] },
+          { bin: '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge', args: [`--app=${url}`] },
+          { bin: '/Applications/Chromium.app/Contents/MacOS/Chromium', args: [`--app=${url}`] },
         ]
       : platform === 'win32'
         ? [
-            `start "" "chrome" "--app=${url}"`,
-            `start "" "msedge" "--app=${url}"`,
-          ]
+          { bin: 'chrome', args: [`--app=${url}`] },
+          { bin: 'msedge', args: [`--app=${url}`] },
+        ]
         : [
-            `google-chrome --app=${url}`,
-            `chromium-browser --app=${url}`,
-            `microsoft-edge --app=${url}`,
-          ];
+          { bin: 'google-chrome', args: [`--app=${url}`] },
+          { bin: 'chromium-browser', args: [`--app=${url}`] },
+          { bin: 'microsoft-edge', args: [`--app=${url}`] },
+        ];
 
-  for (const cmd of commands) {
+  for (const browser of browsers) {
+    // On macOS, check binary exists before trying
+    if (platform === 'darwin' && !fs.existsSync(browser.bin)) continue;
+
     try {
       await new Promise<void>((resolve, reject) => {
-        execCb(cmd, (err) => { if (err) reject(err); else resolve(); });
+        const child = execFileCb(browser.bin, browser.args, {
+          shell: platform === 'win32',
+          detached: true,
+          stdio: 'ignore',
+        }, (err) => { if (err) reject(err); });
+        child.unref();
+        // Browser launched — resolve after brief delay
+        setTimeout(resolve, 500);
       });
       return; // success
     } catch {
