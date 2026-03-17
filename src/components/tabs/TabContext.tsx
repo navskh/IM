@@ -92,16 +92,11 @@ function tabReducer(state: ITabState, action: TabAction): ITabState {
 
 const STORAGE_KEY = 'im-tabs';
 
+const DEFAULT_STATE: ITabState = { tabs: [DASHBOARD_TAB], activeTabId: 'dashboard' };
+
 function loadState(): ITabState {
-  if (typeof window === 'undefined') return { tabs: [DASHBOARD_TAB], activeTabId: 'dashboard' };
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as ITabState;
-      return { tabs: ensureDashboard(parsed.tabs), activeTabId: parsed.activeTabId };
-    }
-  } catch { /* ignore */ }
-  return { tabs: [DASHBOARD_TAB], activeTabId: 'dashboard' };
+  // Always return default on initial render to match server HTML
+  return DEFAULT_STATE;
 }
 
 interface TabContextValue {
@@ -125,6 +120,17 @@ export function useTabContext() {
 
 export function TabProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(tabReducer, undefined, loadState);
+
+  // Hydrate from localStorage after mount (avoids SSR mismatch)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as ITabState;
+        dispatch({ type: 'HYDRATE', state: { tabs: ensureDashboard(parsed.tabs), activeTabId: parsed.activeTabId } });
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   // Persist to localStorage
   useEffect(() => {
