@@ -130,11 +130,29 @@ program
       process.exit(1);
     });
 
-    setTimeout(async () => {
-      try {
-        await openAsApp(`http://localhost:${port}`);
-      } catch { /* ignore */ }
-    }, 3000);
+    // Wait for server to be ready, then open browser
+    const waitAndOpen = async () => {
+      const url = `http://localhost:${port}`;
+      for (let i = 0; i < 30; i++) {
+        try {
+          await new Promise<void>((resolve, reject) => {
+            const http = require('http');
+            const req = http.get(url, (res: { statusCode: number }) => {
+              if (res.statusCode === 200) resolve();
+              else reject();
+            });
+            req.on('error', reject);
+            req.setTimeout(1000, () => { req.destroy(); reject(); });
+          });
+          // Server is ready
+          await openAsApp(url);
+          return;
+        } catch {
+          await new Promise(r => setTimeout(r, 1000));
+        }
+      }
+    };
+    waitAndOpen().catch(() => {});
 
     process.on('SIGINT', () => { child.kill(); process.exit(0); });
     process.on('SIGTERM', () => { child.kill(); process.exit(0); });
