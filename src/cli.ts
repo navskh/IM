@@ -8,6 +8,8 @@ import { getSubProjects } from './lib/db/queries/sub-projects';
 import { getTasksByProject, updateTask } from './lib/db/queries/tasks';
 import { getTaskPrompt } from './lib/db/queries/task-prompts';
 import type { McpToolContext } from './lib/mcp/tools';
+import { startWatcher } from './lib/watcher';
+import { syncInit, syncPush, syncPull, syncStatus } from './lib/sync/index';
 import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -100,7 +102,6 @@ program
   .option('--timeout <minutes>', 'Per-task timeout in minutes', '10')
   .option('--dry-run', 'Show what would be executed without running')
   .action(async (opts) => {
-    const { startWatcher } = await import('./lib/watcher.ts');
     await startWatcher({
       projectId: opts.project,
       intervalMs: parseInt(opts.interval) * 1000,
@@ -190,7 +191,6 @@ const syncCmd = program
   .command('sync')
   .description('Sync data via GitHub repository')
   .action(async () => {
-    const { syncStatus } = await import('./lib/sync/index.ts');
     await syncStatus();
   });
 
@@ -198,7 +198,6 @@ syncCmd
   .command('init')
   .description('Initialize sync with a GitHub repository')
   .action(async () => {
-    const { syncInit } = await import('./lib/sync/index.ts');
     await syncInit();
   });
 
@@ -207,7 +206,6 @@ syncCmd
   .description('Export data and push to GitHub')
   .option('-m, --message <msg>', 'Custom commit message')
   .action(async (opts) => {
-    const { syncPush } = await import('./lib/sync/index.ts');
     await syncPush(opts.message);
   });
 
@@ -216,7 +214,6 @@ syncCmd
   .description('Pull from GitHub and import data')
   .option('--no-backup', 'Skip database backup before import')
   .action(async (opts) => {
-    const { syncPull } = await import('./lib/sync/index.ts');
     await syncPull({ backup: opts.backup });
   });
 
