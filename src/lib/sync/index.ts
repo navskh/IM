@@ -66,6 +66,11 @@ export async function syncInit() {
   }
 
   if (!repoUrl) {
+    if (!ghAvailable) {
+      console.log('\n  gh CLI not found — auto repo creation unavailable.');
+      console.log('  Create a repo on GitHub first, then paste the URL below.');
+      console.log('  (Install gh: https://cli.github.com)\n');
+    }
     repoUrl = await ask('Enter git repository URL');
     if (!repoUrl) {
       console.error('\n  Error: Repository URL is required.\n');
