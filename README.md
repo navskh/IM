@@ -2,16 +2,23 @@
 
 **English** | [한국어](README.ko.md) | [日本語](README.ja.md) | [中文](README.zh.md)
 
-> From ideas to executable prompts — a multi-project workflow manager
+> Turn free-form brainstorming into structured task trees with AI-generated prompts.
 
-A task management tool for developers juggling multiple projects simultaneously. Organize ideas into sub-projects and tasks, refine prompts for each task, and hand them off to AI agents like Claude Code. With a built-in MCP Server, AI agents can autonomously pick up and execute tasks.
+A local-first task management tool for developers. Organize ideas into sub-projects and tasks, refine prompts for each task, and hand them off to AI agents. Built-in MCP Server enables autonomous AI agent execution. Cross-PC sync via Git.
 
-![IM Workspace](docs/screenshot.png)
+## Quick Start
+
+```bash
+npm install -g idea-manager
+im start
+```
+
+Opens a native-like app window (Chrome/Edge `--app` mode). First run builds automatically.
 
 ## Core Workflow
 
 ```
-Brainstorming → Organize into Sub-projects/Tasks → Refine Prompts → Execute via MCP
+Brainstorming → Sub-projects / Tasks → Prompts → AI Agent Execution
 ```
 
 ### Hierarchy
@@ -34,34 +41,54 @@ Project
                                                       🔴 Problem
 ```
 
-## Installation
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `im start` | Start web UI (port 3456) |
+| `im start -p 4000` | Custom port |
+| `im mcp` | Start MCP server (stdio) |
+| `im watch` | Auto-execute submitted tasks via AI CLI |
+| `im sync init` | Initialize cross-PC sync |
+| `im sync push` | Export data + push to Git |
+| `im sync pull` | Pull + import data |
+| `im sync` | Show sync status |
+
+## Features
+
+### Multi-Agent Support
+
+Choose your AI CLI per project:
+
+| Agent | CLI | Description |
+|-------|-----|-------------|
+| **Claude** | `claude` | Anthropic Claude Code CLI |
+| **Gemini** | `gemini` | Google Gemini CLI |
+| **Codex** | `codex` | OpenAI Codex CLI |
+
+Select from the project header dropdown. Used for Watch mode and AI Chat.
+
+### Cross-PC Sync
+
+Sync your data across machines via a private Git repository.
 
 ```bash
-npm install -g idea-manager
+# First machine
+im sync init          # Create/connect a Git repo
+im sync push          # Export + push
+
+# Other machines
+im sync init          # Same repo URL
+im sync pull          # Pull + import
 ```
 
-## Usage
+Supports auto repo creation with [GitHub CLI](https://cli.github.com) (`gh`).
 
-### Start Web UI
+### MCP Server
 
-```bash
-im start
-```
+Expose tasks to external AI agents via Model Context Protocol.
 
-Opens the web UI at `http://localhost:3456`.
-
-```bash
-# Custom port
-im start -p 4000
-```
-
-### Start MCP Server
-
-```bash
-im mcp
-```
-
-#### Claude Desktop Configuration (claude_desktop_config.json)
+**Claude Desktop** (`claude_desktop_config.json`):
 
 ```json
 {
@@ -74,53 +101,87 @@ im mcp
 }
 ```
 
-#### Claude Code Configuration
+**Claude Code**:
 
 ```bash
 claude mcp add idea-manager -- npx -y idea-manager mcp
 ```
 
-### MCP Tools
+#### MCP Tools
 
 | Tool | Description |
 |------|-------------|
 | `list-projects` | List all projects |
-| `get-project-context` | Get full sub-project + task tree |
-| `get-next-task` | Get next task to execute (status=submitted) |
-| `get-task-prompt` | Get prompt for a specific task |
-| `update-status` | Change task status (idea/writing/submitted/testing/done/problem) |
-| `report-completion` | Report task completion |
+| `get-project-context` | Full sub-project + task tree |
+| `get-next-task` | Next submitted task to execute |
+| `get-task-prompt` | Get prompt for a task |
+| `update-status` | Change task status |
+| `report-completion` | Report task done |
 
-## Key Features
+### Watch Mode
 
-- **Tab-based Multi-project** — Open multiple projects in tabs like a browser/IDE, state preserved on tab switch
-- **3-Panel Workspace** — Brainstorming | Project Tree | Task Detail, drag to resize panels
-- **Tree-structured Projects** — Tasks displayed hierarchically under sub-projects
-- **Brainstorming Panel** — Free-form notes, collapsible
-- **Prompt Editor** — Write/edit/copy prompts per task, AI refinement
-- **AI Chat** — Per-task AI conversations to refine prompts
-- **3-Tab Dashboard** — Active / All / Today
-- **Keyboard Shortcuts** — Ctrl+Tab/Ctrl+Shift+Tab for tab navigation, B: toggle brainstorm, N: add sub-project, T: add task, Cmd+1~6: change status
-- **PWA Support** — Install as an app for a standalone window experience
-- **Watch Mode** — Auto-execute submitted tasks via Claude CLI with real-time progress
-- **Built-in MCP Server** — Supports autonomous AI agent execution
-- **Local-first** — SQLite-based, data stored in `~/.idea-manager/`
+Auto-execute submitted tasks with real-time streaming output:
+
+```bash
+im watch                          # All watch-enabled projects
+im watch --project <id>           # Specific project
+im watch --interval 30 --dry-run  # Preview mode
+```
+
+### Workspace
+
+- **3-Panel Layout** — Brainstorming | Project Tree | Task Detail (drag to resize)
+- **Tab-based Navigation** — Multiple projects open simultaneously
+- **File Tree Drawer** — Browse linked project directories
+- **Brainstorming Panel** — Free-form notes with inline AI memos
+- **Prompt Editor** — Write/edit/copy prompts per task
+- **AI Chat** — Per-task conversations to refine work
+- **Dashboard** — Active / All / Today views
+- **Keyboard Shortcuts** — `B` brainstorm, `N` sub-project, `T` task, `Cmd+1~6` status
+
+### Data
+
+- **Local-first** — All data in `~/.idea-manager/data/` (SQLite via sql.js)
+- **Zero native deps** — Pure JavaScript, no C++ build tools needed
+- **Auto backup** — Database backed up before each sync pull
+- **App mode** — Opens in Chrome/Edge without address bar
 
 ## Tech Stack
 
 | Area | Technology |
 |------|------------|
-| Frontend | Next.js 15, React 19, TypeScript, Tailwind CSS 4 |
+| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4 |
 | Backend | Next.js API Routes |
-| Database | SQLite (better-sqlite3) |
-| AI | Claude CLI (subscription-based, no API key needed) |
+| Database | SQLite (sql.js, pure JS) |
+| AI | Claude / Gemini / Codex CLI |
 | MCP | Model Context Protocol (stdio) |
 | CLI | Commander.js |
 
 ## Requirements
 
 - **Node.js** 18+
-- **Claude CLI** — Required for AI chat/refinement features (Claude subscription needed). Core features like task management and prompt editing work without it.
+- **AI CLI** (optional) — [Claude CLI](https://docs.anthropic.com/en/docs/claude-code), [Gemini CLI](https://github.com/google-gemini/gemini-cli), or [Codex CLI](https://github.com/openai/codex) for AI features. Core task management works without it.
+
+## Troubleshooting
+
+**`im` command not found after install**
+
+Add npm's global bin directory to your PATH:
+
+```bash
+# Check the path
+npm prefix -g
+# Add to shell profile (~/.zshrc or ~/.bashrc)
+export PATH="$(npm prefix -g)/bin:$PATH"
+```
+
+**Port already in use**
+
+```bash
+# Kill the process using the port
+lsof -t -i :3456 | xargs kill -9    # macOS/Linux
+netstat -ano | findstr :3456          # Windows (then taskkill /PID <pid> /F)
+```
 
 ## License
 

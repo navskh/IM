@@ -2,16 +2,23 @@
 
 [English](README.md) | **한국어** | [日本語](README.ja.md) | [中文](README.zh.md)
 
-> 아이디어에서 실행 가능한 프롬프트까지, 멀티 프로젝트 워크플로우 매니저
+> 자유로운 브레인스토밍을 구조화된 태스크 트리와 AI 프롬프트로 변환
 
-여러 프로젝트를 동시에 진행하는 개발자를 위한 태스크 관리 도구입니다. 아이디어를 서브 프로젝트와 태스크로 조직화하고, 각 태스크별 프롬프트를 정제하여 Claude Code 등 AI 에이전트에게 전달할 수 있습니다. MCP Server를 내장하고 있어 AI 에이전트가 자율적으로 태스크를 가져가 실행할 수 있습니다.
+개발자를 위한 로컬 기반 태스크 관리 도구. 아이디어를 서브 프로젝트와 태스크로 정리하고, 각 태스크에 프롬프트를 작성한 뒤 AI 에이전트에게 넘길 수 있습니다. 내장 MCP 서버로 AI 에이전트의 자율 실행을 지원합니다. Git을 통한 PC 간 동기화.
 
-![IM Workspace](docs/screenshot.png)
+## 빠른 시작
+
+```bash
+npm install -g idea-manager
+im start
+```
+
+네이티브 앱처럼 독립 윈도우로 열립니다 (Chrome/Edge `--app` 모드). 첫 실행 시 자동 빌드됩니다.
 
 ## 핵심 워크플로우
 
 ```
-브레인스토밍 → 서브 프로젝트/태스크 조직화 → 프롬프트 정제 → MCP로 AI 실행
+브레인스토밍 → 서브 프로젝트 / 태스크 → 프롬프트 → AI 에이전트 실행
 ```
 
 ### 계층 구조
@@ -30,38 +37,58 @@
 ### 태스크 상태 흐름
 
 ```
-💡 Idea → ✏️ Writing → 🚀 Submitted → 🧪 Testing → ✅ Done
-                                                      🔴 Problem
+💡 아이디어 → ✏️ 작성중 → 🚀 제출 → 🧪 테스트 → ✅ 완료
+                                                    🔴 문제
 ```
 
-## 설치
+## CLI 명령어
+
+| 명령어 | 설명 |
+|--------|------|
+| `im start` | 웹 UI 시작 (포트 3456) |
+| `im start -p 4000` | 커스텀 포트 |
+| `im mcp` | MCP 서버 시작 (stdio) |
+| `im watch` | 제출된 태스크 AI 자동 실행 |
+| `im sync init` | PC 간 동기화 초기화 |
+| `im sync push` | 데이터 내보내기 + push |
+| `im sync pull` | 데이터 가져오기 |
+| `im sync` | 동기화 상태 확인 |
+
+## 주요 기능
+
+### 멀티 에이전트 지원
+
+프로젝트별로 AI CLI를 선택할 수 있습니다:
+
+| 에이전트 | CLI | 설명 |
+|----------|-----|------|
+| **Claude** | `claude` | Anthropic Claude Code CLI |
+| **Gemini** | `gemini` | Google Gemini CLI |
+| **Codex** | `codex` | OpenAI Codex CLI |
+
+프로젝트 헤더의 드롭다운에서 선택. Watch 모드와 AI Chat에 적용됩니다.
+
+### PC 간 동기화
+
+Git 리포지토리를 통해 여러 PC에서 데이터를 동기화합니다.
 
 ```bash
-npm install -g idea-manager
+# 첫 번째 PC
+im sync init          # Git 리포 생성/연결
+im sync push          # 내보내기 + push
+
+# 다른 PC
+im sync init          # 같은 리포 URL 입력
+im sync pull          # 가져오기
 ```
 
-## 사용법
+[GitHub CLI](https://cli.github.com) (`gh`)가 있으면 리포 자동 생성을 지원합니다.
 
-### 웹 UI 실행
+### MCP 서버
 
-```bash
-im start
-```
+Model Context Protocol로 외부 AI 에이전트에 태스크를 노출합니다.
 
-`http://localhost:3456`에서 웹 UI가 열립니다.
-
-```bash
-# 포트 변경
-im start -p 4000
-```
-
-### MCP Server 실행
-
-```bash
-im mcp
-```
-
-#### Claude Desktop 설정 (claude_desktop_config.json)
+**Claude Desktop** (`claude_desktop_config.json`):
 
 ```json
 {
@@ -74,53 +101,72 @@ im mcp
 }
 ```
 
-#### Claude Code 설정
+**Claude Code**:
 
 ```bash
 claude mcp add idea-manager -- npx -y idea-manager mcp
 ```
 
-### MCP 제공 도구
+### Watch 모드
 
-| 도구 | 설명 |
-|------|------|
-| `list-projects` | 프로젝트 목록 조회 |
-| `get-project-context` | 서브 프로젝트 + 태스크 트리 전체 조회 |
-| `get-next-task` | 다음 실행할 태스크와 프롬프트 조회 (status=submitted) |
-| `get-task-prompt` | 특정 태스크의 프롬프트 조회 |
-| `update-status` | 태스크 상태 변경 (idea/writing/submitted/testing/done/problem) |
-| `report-completion` | 태스크 완료 보고 |
+제출된 태스크를 AI로 자동 실행 (실시간 스트리밍 출력):
 
-## 주요 기능
+```bash
+im watch                          # Watch 활성화된 모든 프로젝트
+im watch --project <id>           # 특정 프로젝트
+im watch --interval 30 --dry-run  # 미리보기 모드
+```
 
-- **탭 기반 멀티 프로젝트** — 브라우저/IDE처럼 여러 프로젝트를 탭으로 동시에 열기, 탭 전환 시 상태 보존
-- **3-패널 워크스페이스** — 브레인스토밍 | 프로젝트 트리 | 태스크 상세, 패널 간 드래그로 크기 조절
-- **트리형 프로젝트 구조** — 서브 프로젝트 아래 태스크가 계층적으로 표시
-- **브레인스토밍 패널** — 자유 형식 메모, 접기/펼치기 가능
-- **프롬프트 에디터** — 태스크별 프롬프트 작성/편집/복사, AI 다듬기
-- **AI 채팅** — 태스크별 AI 대화로 프롬프트 구체화
-- **3탭 대시보드** — 진행 중 / 전체 / 오늘 할 일
-- **키보드 단축키** — Ctrl+Tab/Ctrl+Shift+Tab으로 탭 이동, B: 브레인스토밍 토글, N: 서브 프로젝트 추가, T: 태스크 추가, Cmd+1~6: 상태 변경 (한영 전환 상관없이 동작)
-- **PWA 지원** — 앱으로 설치하여 독립 창에서 사용 가능
-- **Watch 모드** — submitted 태스크를 Claude CLI로 자동 실행, 실시간 진행 표시
-- **MCP Server 내장** — AI 에이전트 자율 실행 지원
-- **로컬 우선** — SQLite 기반, 데이터는 `~/.idea-manager/`에 저장
+### 워크스페이스
+
+- **3-패널 레이아웃** — 브레인스토밍 | 프로젝트 트리 | 태스크 상세 (드래그로 크기 조절)
+- **탭 기반 네비게이션** — 여러 프로젝트 동시 열기
+- **파일 트리 드로어** — 연결된 프로젝트 디렉토리 탐색
+- **브레인스토밍 패널** — 자유로운 메모 + AI 인라인 메모
+- **프롬프트 에디터** — 태스크별 프롬프트 작성/편집/복사
+- **AI 채팅** — 태스크별 대화로 작업 개선
+- **대시보드** — Active / All / Today 뷰
+- **키보드 단축키** — `B` 브레인스토밍, `N` 서브 프로젝트, `T` 태스크, `Cmd+1~6` 상태 변경
+
+### 데이터
+
+- **로컬 우선** — 모든 데이터는 `~/.idea-manager/data/`에 저장 (SQLite via sql.js)
+- **네이티브 의존성 없음** — 순수 JavaScript, C++ 빌드 도구 불필요
+- **자동 백업** — sync pull 시 기존 DB 자동 백업
+- **앱 모드** — 주소창 없는 독립 윈도우로 실행
 
 ## 기술 스택
 
 | 영역 | 기술 |
 |------|------|
-| Frontend | Next.js 15, React 19, TypeScript, Tailwind CSS 4 |
-| Backend | Next.js API Routes |
-| Database | SQLite (better-sqlite3) |
-| AI | Claude CLI (구독 기반, API 키 불필요) |
+| 프론트엔드 | Next.js 16, React 19, TypeScript, Tailwind CSS 4 |
+| 백엔드 | Next.js API Routes |
+| 데이터베이스 | SQLite (sql.js, 순수 JS) |
+| AI | Claude / Gemini / Codex CLI |
 | MCP | Model Context Protocol (stdio) |
 | CLI | Commander.js |
 
-## 요구 사항
+## 요구사항
 
 - **Node.js** 18+
-- **Claude CLI** — AI 채팅/다듬기 기능 사용 시 필요 (Claude 구독 필요). 없어도 태스크 관리, 프롬프트 작성 등 기본 기능은 정상 동작합니다.
+- **AI CLI** (선택) — [Claude CLI](https://docs.anthropic.com/en/docs/claude-code), [Gemini CLI](https://github.com/google-gemini/gemini-cli), 또는 [Codex CLI](https://github.com/openai/codex). AI 기능에 필요하며, 태스크 관리는 CLI 없이도 사용 가능.
+
+## 문제 해결
+
+**설치 후 `im` 명령어를 찾을 수 없음**
+
+```bash
+# npm 글로벌 경로를 PATH에 추가
+export PATH="$(npm prefix -g)/bin:$PATH"
+# ~/.zshrc 또는 ~/.bashrc에 위 줄 추가 후
+source ~/.zshrc
+```
+
+**포트가 이미 사용 중**
+
+```bash
+lsof -t -i :3456 | xargs kill -9    # macOS/Linux
+```
 
 ## 라이선스
 
