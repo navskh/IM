@@ -8,7 +8,6 @@ class DatabaseWrapper {
   private db: any;
   private dbPath: string;
   private dirty = false;
-  private saveTimer: ReturnType<typeof setTimeout> | null = null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   constructor(db: any, dbPath: string) {
@@ -23,21 +22,8 @@ class DatabaseWrapper {
     this.dirty = false;
   }
 
-  private scheduleSave() {
-    this.dirty = true;
-    if (this.saveTimer) return;
-    this.saveTimer = setTimeout(() => {
-      this.save();
-      this.saveTimer = null;
-    }, 100);
-  }
-
   private immediatelySave() {
     this.dirty = true;
-    if (this.saveTimer) {
-      clearTimeout(this.saveTimer);
-      this.saveTimer = null;
-    }
     this.save();
   }
 
@@ -85,7 +71,7 @@ class DatabaseWrapper {
 
       run(...params: unknown[]) {
         self.db.run(sql, params);
-        if (isWrite) self.scheduleSave();
+        if (isWrite) self.immediatelySave();
         const changes = self.db.getRowsModified();
         return { changes };
       },
@@ -95,7 +81,7 @@ class DatabaseWrapper {
   exec(sql: string) {
     this.db.exec(sql);
     if (/^\s*(INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)/im.test(sql)) {
-      this.scheduleSave();
+      this.immediatelySave();
     }
   }
 
