@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IM (Idea Manager) - Presentation</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-dark: #0a0a0f;
+    --bg-card: #12121a;
+    --bg-card-hover: #1a1a2e;
+    --accent: #6366f1;
+    --accent-light: #818cf8;
+    --accent-glow: rgba(99, 102, 241, 0.3);
+    --green: #22c55e;
+    --orange: #f59e0b;
+    --pink: #ec4899;
+    --cyan: #06b6d4;
+    --red: #ef4444;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --text-muted: #64748b;
+    --border: #1e293b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans KR', 'Inter', sans-serif;
+    background: var(--bg-dark);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* Slide Container */
+  .slides-wrapper {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  .slide {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 60px 80px;
+    opacity: 0;
+    transform: translateX(60px);
+    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+    overflow-y: auto;
+  }
+
+  .slide.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+
+  .slide.prev {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+
+  /* Navigation */
+  .nav-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0; right: 0;
+    height: 56px;
+    background: rgba(10, 10, 15, 0.85);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    z-index: 100;
+  }
+
+  .nav-dots {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .nav-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.3s;
+    border: none;
+  }
+
+  .nav-dot.active {
+    background: var(--accent);
+    width: 24px;
+    border-radius: 4px;
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+
+  .nav-arrows {
+    display: flex;
+    gap: 12px;
+  }
+
+  .nav-btn {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    transition: all 0.2s;
+  }
+
+  .nav-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .nav-info {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Slide Elements */
+  .slide-tag {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent-light);
+    margin-bottom: 20px;
+  }
+
+  .slide-title {
+    font-size: clamp(36px, 5vw, 64px);
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 24px;
+    text-align: center;
+    background: linear-gradient(135deg, #fff 0%, var(--accent-light) 50%, var(--pink) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .slide-subtitle {
+    font-size: clamp(18px, 2.5vw, 24px);
+    color: var(--text-dim);
+    text-align: center;
+    max-width: 720px;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  .slide-content {
+    width: 100%;
+    max-width: 1100px;
+  }
+
+  /* Cards Grid */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    width: 100%;
+    max-width: 1100px;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--pink));
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .card:hover {
+    border-color: var(--accent);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  }
+
+  .card:hover::before { opacity: 1; }
+
+  .card-icon {
+    font-size: 36px;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .card-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: #fff;
+  }
+
+  .card-desc {
+    font-size: 16px;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+
+  /* Code Block */
+  .code-block {
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 12px;
+    padding: 24px 28px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    line-height: 1.8;
+    color: #c9d1d9;
+    overflow-x: auto;
+    width: 100%;
+    max-width: 700px;
+  }
+
+  .code-block .comment { color: #8b949e; }
+  .code-block .keyword { color: #ff7b72; }
+  .code-block .string { color: #a5d6ff; }
+  .code-block .cmd { color: #79c0ff; }
+  .code-block .flag { color: #d2a8ff; }
+
+  /* Flow Diagram */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 32px 0;
+  }
+
+  .flow-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 24px;
+    text-align: center;
+    min-width: 140px;
+    transition: all 0.3s;
+  }
+
+  .flow-item:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 20px var(--accent-glow);
+  }
+
+  .flow-emoji { font-size: 28px; display: block; margin-bottom: 8px; }
+  .flow-label { font-size: 17px; font-weight: 600; color: #fff; }
+  .flow-sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+  .flow-arrow {
+    font-size: 22px;
+    color: var(--accent-light);
+    flex-shrink: 0;
+  }
+
+  /* Status Bar */
+  .status-flow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 20px 0;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 17px;
+    font-weight: 600;
+    border: 1px solid transparent;
+  }
+
+  .status-badge.idea { background: rgba(99,102,241,0.15); color: var(--accent-light); border-color: rgba(99,102,241,0.3); }
+  .status-badge.writing { background: rgba(245,158,11,0.15); color: var(--orange); border-color: rgba(245,158,11,0.3); }
+  .status-badge.submitted { background: rgba(6,182,212,0.15); color: var(--cyan); border-color: rgba(6,182,212,0.3); }
+  .status-badge.testing { background: rgba(236,72,153,0.15); color: var(--pink); border-color: rgba(236,72,153,0.3); }
+  .status-badge.done { background: rgba(34,197,94,0.15); color: var(--green); border-color: rgba(34,197,94,0.3); }
+  .status-badge.problem { background: rgba(239,68,68,0.15); color: var(--red); border-color: rgba(239,68,68,0.3); }
+
+  .status-arrow { color: var(--text-muted); font-size: 18px; }
+
+  /* Hierarchy Tree */
+  .tree {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 17px;
+    line-height: 2.2;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 40px;
+    max-width: 560px;
+    width: 100%;
+  }
+
+  .tree-line { display: flex; align-items: center; gap: 10px; }
+  .tree-branch { color: var(--text-muted); white-space: pre; }
+  .tree-icon { flex-shrink: 0; }
+  .tree-text { color: var(--text); }
+  .tree-text.project { color: #fff; font-weight: 700; font-size: 19px; }
+  .tree-text.sub { color: var(--accent-light); font-weight: 600; }
+  .tree-text.task { color: var(--text-dim); }
+  .tree-text.prompt { color: var(--green); font-size: 15px; }
+
+  /* Feature List */
+  .feature-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    max-width: 800px;
+    width: 100%;
+  }
+
+  .feature-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 22px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 17px;
+    transition: all 0.2s;
+  }
+
+  .feature-item:hover {
+    border-color: var(--accent);
+    background: var(--bg-card-hover);
+  }
+
+  .feature-check {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    background: rgba(34,197,94,0.15);
+    color: var(--green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  /* Agent Table */
+  .agent-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    max-width: 800px;
+    width: 100%;
+  }
+
+  .agent-card {
+    text-align: center;
+    padding: 32px 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    transition: all 0.3s;
+  }
+
+  .agent-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-4px);
+  }
+
+  .agent-logo { font-size: 48px; margin-bottom: 16px; display: block; }
+  .agent-name { font-size: 20px; font-weight: 700; margin-bottom: 6px; color: #fff; }
+  .agent-cli {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--accent-light);
+    background: rgba(99,102,241,0.1);
+    padding: 4px 12px;
+    border-radius: 6px;
+    display: inline-block;
+  }
+
+  /* Section Header */
+  .section-header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .section-header h2 {
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 800;
+    margin-bottom: 12px;
+    color: #fff;
+  }
+
+  .section-header p {
+    font-size: 19px;
+    color: var(--text-dim);
+    max-width: 700px;
+    margin: 0 auto;
+    line-height: 1.7;
+  }
+
+  /* Tech Stack */
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    max-width: 840px;
+    width: 100%;
+  }
+
+  .tech-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 22px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    transition: all 0.2s;
+  }
+
+  .tech-item:hover {
+    border-color: var(--accent);
+  }
+
+  .tech-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .tech-icon.blue { background: rgba(99,102,241,0.15); }
+  .tech-icon.green { background: rgba(34,197,94,0.15); }
+  .tech-icon.orange { background: rgba(245,158,11,0.15); }
+  .tech-icon.pink { background: rgba(236,72,153,0.15); }
+  .tech-icon.cyan { background: rgba(6,182,212,0.15); }
+  .tech-icon.red { background: rgba(239,68,68,0.15); }
+
+  .tech-name { font-weight: 600; font-size: 16px; color: #fff; }
+  .tech-desc { font-size: 14px; color: var(--text-muted); }
+
+  /* Background Effects */
+  .bg-glow {
+    position: absolute;
+    width: 400px; height: 400px;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.15;
+    pointer-events: none;
+  }
+
+  .bg-glow.purple { background: var(--accent); top: -100px; right: -100px; }
+  .bg-glow.pink { background: var(--pink); bottom: -100px; left: -100px; }
+  .bg-glow.cyan { background: var(--cyan); top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+  /* Keyboard hint */
+  .kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 6px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  /* Comparison */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 60px 1fr;
+    gap: 0;
+    align-items: center;
+    max-width: 900px;
+    width: 100%;
+  }
+
+  .compare-box {
+    padding: 32px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+  }
+
+  .compare-box.before {
+    background: rgba(239, 68, 68, 0.05);
+    border-color: rgba(239, 68, 68, 0.2);
+  }
+
+  .compare-box.after {
+    background: rgba(34, 197, 94, 0.05);
+    border-color: rgba(34, 197, 94, 0.2);
+  }
+
+  .compare-label {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .compare-label.red { color: var(--red); }
+  .compare-label.green { color: var(--green); }
+
+  .compare-vs {
+    text-align: center;
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text-muted);
+  }
+
+  .compare-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 16px;
+    font-size: 18px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  .compare-item span:first-child { flex-shrink: 0; }
+
+  /* MCP Section */
+  .mcp-tools {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    max-width: 840px;
+    width: 100%;
+  }
+
+  .mcp-tool {
+    padding: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    transition: all 0.2s;
+  }
+
+  .mcp-tool:hover {
+    border-color: var(--cyan);
+    background: var(--bg-card-hover);
+  }
+
+  .mcp-tool-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    color: var(--cyan);
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+
+  .mcp-tool-desc {
+    font-size: 15px;
+    color: var(--text-dim);
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .slide { padding: 40px 24px; }
+    .cards-grid { grid-template-columns: 1fr; }
+    .feature-list { grid-template-columns: 1fr; }
+    .agent-grid { grid-template-columns: 1fr; }
+    .tech-grid { grid-template-columns: 1fr; }
+    .compare-grid { grid-template-columns: 1fr; gap: 16px; }
+    .compare-vs { display: none; }
+    .mcp-tools { grid-template-columns: 1fr; }
+    .flow { gap: 8px; }
+    .flow-arrow { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="slides-wrapper" id="slidesWrapper">
+
+  <!-- Slide 0: Cover -->
+  <div class="slide active" data-index="0">
+    <div class="bg-glow purple"></div>
+    <div class="bg-glow pink"></div>
+    <div class="slide-tag">Open Source &middot; Local-First &middot; MIT License</div>
+    <div class="slide-title">IM<br>Idea Manager</div>
+    <div class="slide-subtitle">
+      자유로운 브레인스토밍을<br>
+      구조화된 태스크 트리와 AI 프롬프트로 변환하는<br>
+      <strong style="color:#fff">개발자를 위한 로컬 기반 태스크 관리 도구</strong>
+    </div>
+    <div style="margin-top: 40px; display: flex; gap: 12px; align-items: center;">
+      <div class="code-block" style="padding: 14px 24px; max-width: 400px; text-align: center;">
+        <span class="cmd">npm install -g</span> <span class="string">idea-manager</span> && <span class="cmd">im start</span>
+      </div>
+    </div>
+    <div style="margin-top: 32px; color: var(--text-muted); font-size: 13px;">
+      <span class="kbd">&larr;</span> <span class="kbd">&rarr;</span> 또는 클릭으로 슬라이드 이동
+    </div>
+  </div>
+
+  <!-- Slide 1: AI 시대의 역설 -->
+  <div class="slide" data-index="1">
+    <div class="bg-glow cyan"></div>
+    <div class="section-header">
+      <div class="slide-tag">The Paradox</div>
+      <h2>AI 시대의 역설</h2>
+      <p>코딩은 AI가 해주는데, 왜 개발은 더 복잡해졌을까?</p>
+    </div>
+    <div class="cards-grid" style="max-width: 1000px;">
+      <div class="card">
+        <span class="card-icon" style="font-size: 48px;">&#9889;</span>
+        <div class="card-title">AI가 바꾼 것</div>
+        <div class="card-desc" style="font-size: 17px; line-height: 1.9;">
+          Claude, GPT, Gemini... AI가 코드를 대신 짜주는 시대.<br>
+          개발의 <strong style="color:#fff">실행 속도</strong>는 폭발적으로 빨라졌다.
+        </div>
+      </div>
+      <div class="card">
+        <span class="card-icon" style="font-size: 48px;">&#129504;</span>
+        <div class="card-title">바뀌지 않은 것</div>
+        <div class="card-desc" style="font-size: 17px; line-height: 1.9;">
+          하지만 <strong style="color:#fff">"무엇을 만들지"</strong> 결정하는 건 여전히 사람의 몫.<br>
+          아이디어 정리, 우선순위, 작업 분해는 AI가 못 한다.
+        </div>
+      </div>
+      <div class="card" style="grid-column: span 2;">
+        <span class="card-icon" style="font-size: 48px;">&#127919;</span>
+        <div class="card-title">진짜 병목은 "정리"</div>
+        <div class="card-desc" style="font-size: 17px; line-height: 1.9;">
+          AI에게 좋은 결과를 받으려면, <strong style="color:#fff">좋은 프롬프트</strong>가 필요하다.<br>
+          좋은 프롬프트는 <strong style="color:#fff">잘 정리된 생각</strong>에서 나온다.<br>
+          결국 <strong style="color: var(--accent-light);">생각을 구조화하는 과정</strong>이 개발의 핵심이 되었다.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 2: 기존 도구의 한계 -->
+  <div class="slide" data-index="2">
+    <div class="section-header">
+      <div class="slide-tag">Limitations</div>
+      <h2>기존 도구들의 한계</h2>
+      <p>좋은 도구들이지만, AI 시대의 개발 워크플로우에는 맞지 않는다</p>
+    </div>
+    <div class="cards-grid" style="max-width: 1000px; grid-template-columns: repeat(3, 1fr);">
+      <div class="card">
+        <span class="card-icon" style="font-size: 40px;">&#128221;</span>
+        <div class="card-title">메모 앱</div>
+        <div class="card-desc" style="font-size: 16px; line-height: 1.8; color: var(--text-muted);">Notion, Obsidian, 메모장</div>
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+          <div class="card-desc" style="font-size: 16px; line-height: 1.8;">
+            &#10060; 적기엔 좋지만 <strong style="color:var(--red);">실행으로 연결이 안 됨</strong><br>
+            &#10060; 아이디어가 쌓이기만 하고 정체<br>
+            &#10060; AI 에이전트와 연동 불가
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <span class="card-icon" style="font-size: 40px;">&#128203;</span>
+        <div class="card-title">프로젝트 관리</div>
+        <div class="card-desc" style="font-size: 16px; line-height: 1.8; color: var(--text-muted);">Jira, Linear, Trello</div>
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+          <div class="card-desc" style="font-size: 16px; line-height: 1.8;">
+            &#10060; 팀 협업 도구라 <strong style="color:var(--red);">혼자 쓰기엔 무거움</strong><br>
+            &#10060; 브레인스토밍 → 태스크 전환이 단절<br>
+            &#10060; AI 프롬프트 관리 개념 없음
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <span class="card-icon" style="font-size: 40px;">&#129302;</span>
+        <div class="card-title">AI 도구</div>
+        <div class="card-desc" style="font-size: 16px; line-height: 1.8; color: var(--text-muted);">Claude, ChatGPT, Cursor</div>
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+          <div class="card-desc" style="font-size: 16px; line-height: 1.8;">
+            &#10060; 대화가 끝나면 <strong style="color:var(--red);">맥락이 사라짐</strong><br>
+            &#10060; 매번 처음부터 상황 설명 반복<br>
+            &#10060; 프롬프트가 체계적으로 관리 안 됨
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top: 36px; text-align: center; font-size: 19px; color: var(--text-dim); max-width: 700px;">
+      <strong style="color: var(--accent-light);">"아이디어를 적는 도구"</strong>와 <strong style="color: var(--accent-light);">"실행하는 도구"</strong> 사이에<br>
+      <strong style="color: #fff;">연결 고리가 없다</strong>
+    </div>
+  </div>
+
+  <!-- Slide 3: IM의 철학 -->
+  <div class="slide" data-index="3">
+    <div class="bg-glow purple"></div>
+    <div class="bg-glow pink"></div>
+    <div class="section-header">
+      <div class="slide-tag">Philosophy</div>
+      <h2>IM의 철학</h2>
+      <p>프롬프트가 곧 산출물이다</p>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 24px; max-width: 900px; width: 100%;">
+      <div style="display: grid; grid-template-columns: 80px 1fr; gap: 24px; align-items: start; padding: 28px 32px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;">
+        <div style="width: 64px; height: 64px; border-radius: 16px; background: rgba(99,102,241,0.15); display: flex; align-items: center; justify-content: center; font-size: 32px;">1</div>
+        <div>
+          <div style="font-size: 21px; font-weight: 700; color: #fff; margin-bottom: 8px;">생각을 자유롭게, 정리는 도구가</div>
+          <div style="font-size: 17px; color: var(--text-dim); line-height: 1.8;">브레인스토밍은 구조에 얽매이지 않고 자유롭게. 그 혼란스러운 생각을 서브 프로젝트와 태스크로 정리하는 건 IM의 역할입니다. 떠오를 때 적고, 나중에 정리하세요.</div>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 80px 1fr; gap: 24px; align-items: start; padding: 28px 32px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;">
+        <div style="width: 64px; height: 64px; border-radius: 16px; background: rgba(236,72,153,0.15); display: flex; align-items: center; justify-content: center; font-size: 32px;">2</div>
+        <div>
+          <div style="font-size: 21px; font-weight: 700; color: #fff; margin-bottom: 8px;">프롬프트는 일회성이 아니라 자산이다</div>
+          <div style="font-size: 17px; color: var(--text-dim); line-height: 1.8;">AI에게 던진 프롬프트는 사라지지 않습니다. 태스크마다 프롬프트를 저장하고, 다듬고, 재사용합니다. 잘 만든 프롬프트 하나가 수시간의 코딩을 대체합니다.</div>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 80px 1fr; gap: 24px; align-items: start; padding: 28px 32px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;">
+        <div style="width: 64px; height: 64px; border-radius: 16px; background: rgba(34,197,94,0.15); display: flex; align-items: center; justify-content: center; font-size: 32px;">3</div>
+        <div>
+          <div style="font-size: 21px; font-weight: 700; color: #fff; margin-bottom: 8px;">사람이 지시하고, AI가 실행한다</div>
+          <div style="font-size: 17px; color: var(--text-dim); line-height: 1.8;">프롬프트를 "제출"하면 AI 에이전트가 자동으로 실행합니다. MCP 서버와 Watch 모드로 Claude, Gemini, Codex가 태스크를 직접 수행합니다. 당신은 감독만 하세요.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 4: Core Workflow -->
+  <div class="slide" data-index="4">
+    <div class="section-header">
+      <div class="slide-tag">Core Workflow</div>
+      <h2>전체 워크플로우</h2>
+      <p>아이디어에서 AI 실행까지, 하나의 흐름으로 연결</p>
+    </div>
+    <div class="flow">
+      <div class="flow-item">
+        <span class="flow-emoji">&#128173;</span>
+        <span class="flow-label">브레인스토밍</span>
+        <div class="flow-sub">자유로운 메모</div>
+      </div>
+      <span class="flow-arrow">&#10230;</span>
+      <div class="flow-item">
+        <span class="flow-emoji">&#128193;</span>
+        <span class="flow-label">서브 프로젝트</span>
+        <div class="flow-sub">카테고리 분류</div>
+      </div>
+      <span class="flow-arrow">&#10230;</span>
+      <div class="flow-item">
+        <span class="flow-emoji">&#9998;</span>
+        <span class="flow-label">태스크</span>
+        <div class="flow-sub">실행 단위 분리</div>
+      </div>
+      <span class="flow-arrow">&#10230;</span>
+      <div class="flow-item">
+        <span class="flow-emoji">&#128196;</span>
+        <span class="flow-label">프롬프트</span>
+        <div class="flow-sub">AI 지시문 작성</div>
+      </div>
+      <span class="flow-arrow">&#10230;</span>
+      <div class="flow-item" style="border-color: var(--green);">
+        <span class="flow-emoji">&#129302;</span>
+        <span class="flow-label">AI 실행</span>
+        <div class="flow-sub">자동/수동 실행</div>
+      </div>
+    </div>
+    <div style="margin-top: 40px; display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap; justify-content: center; max-width: 1100px;">
+      <div class="tree" style="flex: 1; min-width: 400px;">
+        <div class="tree-line"><span class="tree-icon">&#128194;</span> <span class="tree-text project">프로젝트: 웹사이트 리뉴얼</span></div>
+        <div class="tree-line"><span class="tree-branch">├── </span><span class="tree-icon">&#128193;</span> <span class="tree-text sub">서브 프로젝트: 프론트엔드</span></div>
+        <div class="tree-line"><span class="tree-branch">│   ├── </span><span class="tree-icon">&#9744;</span> <span class="tree-text task">태스크: 랜딩 페이지 제작</span></div>
+        <div class="tree-line"><span class="tree-branch">│   │   └── </span><span class="tree-icon">&#128172;</span> <span class="tree-text prompt">프롬프트: "React로 랜딩 페이지를..."</span></div>
+        <div class="tree-line"><span class="tree-branch">│   └── </span><span class="tree-icon">&#9744;</span> <span class="tree-text task">태스크: 다크모드 구현</span></div>
+        <div class="tree-line"><span class="tree-branch">└── </span><span class="tree-icon">&#128193;</span> <span class="tree-text sub">서브 프로젝트: 백엔드</span></div>
+        <div class="tree-line"><span class="tree-branch">    └── </span><span class="tree-icon">&#9744;</span> <span class="tree-text task">태스크: API 설계</span></div>
+      </div>
+      <div style="flex: 1; min-width: 320px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="padding: 18px 22px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; gap: 14px;">
+          <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(99,102,241,0.15); display: flex; align-items: center; justify-content: center; font-size: 18px;">&#128173;</div>
+          <div><div style="font-size: 15px; font-weight: 600; color: #fff;">브레인스토밍 패널</div><div style="font-size: 14px; color: var(--text-muted);">생각나는 대로 자유롭게 작성</div></div>
+        </div>
+        <div style="padding: 18px 22px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; gap: 14px;">
+          <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(236,72,153,0.15); display: flex; align-items: center; justify-content: center; font-size: 18px;">&#128196;</div>
+          <div><div style="font-size: 15px; font-weight: 600; color: #fff;">프롬프트 에디터</div><div style="font-size: 14px; color: var(--text-muted);">태스크별 AI 지시문 작성/관리</div></div>
+        </div>
+        <div style="padding: 18px 22px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; gap: 14px;">
+          <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(34,197,94,0.15); display: flex; align-items: center; justify-content: center; font-size: 18px;">&#129302;</div>
+          <div><div style="font-size: 15px; font-weight: 600; color: #fff;">AI 자동 실행</div><div style="font-size: 14px; color: var(--text-muted);">제출 → Watch/MCP가 자동 처리</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 5: Task Status -->
+  <div class="slide" data-index="5">
+    <div class="section-header">
+      <div class="slide-tag">Task Management</div>
+      <h2>태스크 상태 관리</h2>
+      <p>6단계 상태 흐름으로 진행 상황을 한눈에 파악</p>
+    </div>
+    <div class="status-flow">
+      <div class="status-badge idea">&#128161; Idea</div>
+      <span class="status-arrow">&#10230;</span>
+      <div class="status-badge writing">&#9999;&#65039; Writing</div>
+      <span class="status-arrow">&#10230;</span>
+      <div class="status-badge submitted">&#128640; Submitted</div>
+      <span class="status-arrow">&#10230;</span>
+      <div class="status-badge testing">&#129514; Testing</div>
+      <span class="status-arrow">&#10230;</span>
+      <div class="status-badge done">&#9989; Done</div>
+    </div>
+    <div style="display: flex; justify-content: center; margin-top: 4px;">
+      <div class="status-badge problem" style="margin-left: 240px;">&#128308; Problem</div>
+    </div>
+    <div class="cards-grid" style="margin-top: 48px;">
+      <div class="card">
+        <span class="card-icon">&#128161;</span>
+        <div class="card-title">Idea</div>
+        <div class="card-desc">아이디어 단계. 떠오르는 생각을 자유롭게 기록합니다.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">&#9999;&#65039;</span>
+        <div class="card-title">Writing</div>
+        <div class="card-desc">구체적인 프롬프트를 작성하고 요구사항을 정리합니다.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">&#128640;</span>
+        <div class="card-title">Submitted</div>
+        <div class="card-desc">AI 에이전트에 제출된 상태. Watch 모드로 자동 실행됩니다.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">&#129514;</span>
+        <div class="card-title">Testing</div>
+        <div class="card-desc">AI 실행 결과를 검토하고 테스트하는 단계입니다.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">&#9989;</span>
+        <div class="card-title">Done</div>
+        <div class="card-desc">완료! 태스크가 성공적으로 마무리되었습니다.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">&#128308;</span>
+        <div class="card-title">Problem</div>
+        <div class="card-desc">문제 발생. 수정이 필요한 태스크를 표시합니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 6: Multi Agent -->
+  <div class="slide" data-index="6">
+    <div class="bg-glow purple"></div>
+    <div class="section-header">
+      <div class="slide-tag">Multi-Agent</div>
+      <h2>멀티 에이전트 지원</h2>
+      <p>프로젝트별로 원하는 AI CLI를 선택해서 사용할 수 있습니다</p>
+    </div>
+    <div class="agent-grid">
+      <div class="agent-card">
+        <span class="agent-logo">&#9729;&#65039;</span>
+        <div class="agent-name">Claude</div>
+        <div class="agent-cli">claude</div>
+        <div style="margin-top: 12px; font-size: 13px; color: var(--text-dim);">Anthropic<br>Claude Code CLI</div>
+      </div>
+      <div class="agent-card">
+        <span class="agent-logo">&#10024;</span>
+        <div class="agent-name">Gemini</div>
+        <div class="agent-cli">gemini</div>
+        <div style="margin-top: 12px; font-size: 13px; color: var(--text-dim);">Google<br>Gemini CLI</div>
+      </div>
+      <div class="agent-card">
+        <span class="agent-logo">&#128187;</span>
+        <div class="agent-name">Codex</div>
+        <div class="agent-cli">codex</div>
+        <div style="margin-top: 12px; font-size: 13px; color: var(--text-dim);">OpenAI<br>Codex CLI</div>
+      </div>
+    </div>
+    <div style="margin-top: 40px; text-align: center; color: var(--text-dim); font-size: 14px; line-height: 1.8;">
+      프로젝트 헤더 드롭다운에서 AI CLI를 선택<br>
+      <strong style="color: var(--text);">Watch 모드</strong>와 <strong style="color: var(--text);">AI Chat</strong>에 자동 적용
+    </div>
+  </div>
+
+  <!-- Slide 7: MCP Server -->
+  <div class="slide" data-index="7">
+    <div class="bg-glow cyan"></div>
+    <div class="section-header">
+      <div class="slide-tag">MCP Server</div>
+      <h2>MCP 서버</h2>
+      <p>Model Context Protocol로 외부 AI 에이전트에 태스크를 노출합니다</p>
+    </div>
+    <div class="mcp-tools">
+      <div class="mcp-tool">
+        <div class="mcp-tool-name">list-projects</div>
+        <div class="mcp-tool-desc">전체 프로젝트 목록 조회</div>
+      </div>
+      <div class="mcp-tool">
+        <div class="mcp-tool-name">get-project-context</div>
+        <div class="mcp-tool-desc">서브 프로젝트 + 태스크 트리</div>
+      </div>
+      <div class="mcp-tool">
+        <div class="mcp-tool-name">get-next-task</div>
+        <div class="mcp-tool-desc">다음 실행할 태스크 조회</div>
+      </div>
+      <div class="mcp-tool">
+        <div class="mcp-tool-name">get-task-prompt</div>
+        <div class="mcp-tool-desc">태스크 프롬프트 조회</div>
+      </div>
+      <div class="mcp-tool">
+        <div class="mcp-tool-name">update-status</div>
+        <div class="mcp-tool-desc">태스크 상태 변경</div>
+      </div>
+      <div class="mcp-tool">
+        <div class="mcp-tool-name">report-completion</div>
+        <div class="mcp-tool-desc">태스크 완료 보고</div>
+      </div>
+    </div>
+    <div style="margin-top: 36px; display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;">
+      <div class="code-block" style="max-width: 480px;">
+        <div class="comment">// Claude Desktop 설정</div>
+        <div>{</div>
+        <div>  "<span class="string">mcpServers</span>": {</div>
+        <div>    "<span class="string">idea-manager</span>": {</div>
+        <div>      "<span class="string">command</span>": "<span class="keyword">npx</span>",</div>
+        <div>      "<span class="string">args</span>": ["<span class="keyword">-y</span>", "<span class="string">idea-manager</span>", "<span class="string">mcp</span>"]</div>
+        <div>    }</div>
+        <div>  }</div>
+        <div>}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 8: Watch Mode & Sync -->
+  <div class="slide" data-index="8">
+    <div class="section-header">
+      <div class="slide-tag">Automation</div>
+      <h2>Watch 모드 & Git 동기화</h2>
+      <p>제출된 태스크를 자동 실행하고, 여러 PC에서 데이터를 동기화합니다</p>
+    </div>
+    <div class="cards-grid" style="max-width: 900px;">
+      <div class="card" style="grid-column: span 1;">
+        <span class="card-icon">&#128064;</span>
+        <div class="card-title">Watch 모드</div>
+        <div class="card-desc" style="margin-bottom: 20px;">제출된 태스크를 AI CLI가 자동으로 실행합니다. 실시간 스트리밍 출력으로 진행 상황을 확인할 수 있습니다.</div>
+        <div class="code-block" style="max-width: 100%; font-size: 13px;">
+          <div><span class="cmd">im watch</span>                  <span class="comment"># 자동 실행</span></div>
+          <div><span class="cmd">im watch</span> <span class="flag">--project</span> &lt;id&gt;  <span class="comment"># 특정 프로젝트</span></div>
+          <div><span class="cmd">im watch</span> <span class="flag">--dry-run</span>       <span class="comment"># 미리보기</span></div>
+        </div>
+      </div>
+      <div class="card" style="grid-column: span 1;">
+        <span class="card-icon">&#128260;</span>
+        <div class="card-title">PC 간 동기화</div>
+        <div class="card-desc" style="margin-bottom: 20px;">Git 리포지토리를 통해 여러 PC에서 데이터를 동기화합니다. GitHub CLI로 리포 자동 생성도 지원합니다.</div>
+        <div class="code-block" style="max-width: 100%; font-size: 13px;">
+          <div><span class="comment"># 첫 번째 PC</span></div>
+          <div><span class="cmd">im sync init</span>   <span class="comment"># 초기화</span></div>
+          <div><span class="cmd">im sync push</span>   <span class="comment"># 내보내기</span></div>
+          <div></div>
+          <div><span class="comment"># 다른 PC</span></div>
+          <div><span class="cmd">im sync init</span>   <span class="comment"># 연결</span></div>
+          <div><span class="cmd">im sync pull</span>   <span class="comment"># 가져오기</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 9: Workspace Features -->
+  <div class="slide" data-index="9">
+    <div class="bg-glow pink"></div>
+    <div class="section-header">
+      <div class="slide-tag">Workspace</div>
+      <h2>워크스페이스 기능</h2>
+      <p>브레인스토밍부터 프롬프트 작성까지, 하나의 화면에서</p>
+    </div>
+    <div class="feature-list">
+      <div class="feature-item">
+        <div class="feature-check">&#10003;</div>
+        <span><strong>3-패널 레이아웃</strong> &mdash; 드래그로 크기 조절</span>
+      </div>
+      <div class="feature-item">
+        <div class="feature-check">&#10003;</div>
+        <span><strong>탭 기반 네비게이션</strong> &mdash; 프로젝트 동시 열기</span>
+      </div>
+      <div class="feature-item">
+        <div class="feature-check">&#10003;</div>
+        <span><strong>브레인스토밍 패널</strong> &mdash; 자유로운 메모</span>
+      </div>
+      <div class="feature-item">
+        <div class="feature-check">&#10003;</div>
+        <span><strong>프롬프트 에디터</strong> &mdash; 태스크별 프롬프트</span>
+      </div>
+      <div class="feature-item">
+        <div class="feature-check">&#10003;</div>
+        <span><strong>AI 채팅</strong> &mdash; 태스크별 대화</span>
+      </div>
+      <div class="feature-item">
+        <div class="feature-check">&#10003;</div>
+        <span><strong>파일 트리 드로어</strong> &mdash; 디렉토리 탐색</span>
+      </div>
+      <div class="feature-item">
+        <div class="feature-check">&#10003;</div>
+        <span><strong>대시보드</strong> &mdash; Active / All / Today</span>
+      </div>
+      <div class="feature-item">
+        <div class="feature-check">&#10003;</div>
+        <span><strong>키보드 단축키</strong> &mdash; 빠른 조작</span>
+      </div>
+      <div class="feature-item">
+        <div class="feature-check">&#10003;</div>
+        <span><strong>드래그 앤 드롭</strong> &mdash; 태스크 순서 변경</span>
+      </div>
+      <div class="feature-item">
+        <div class="feature-check">&#10003;</div>
+        <span><strong>앱 모드</strong> &mdash; 주소창 없는 독립 윈도우</span>
+      </div>
+    </div>
+    <div style="margin-top: 32px; display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
+      <div style="padding: 8px 16px; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border); font-size: 13px;">
+        <span class="kbd">B</span> 브레인스토밍
+      </div>
+      <div style="padding: 8px 16px; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border); font-size: 13px;">
+        <span class="kbd">N</span> 서브 프로젝트
+      </div>
+      <div style="padding: 8px 16px; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border); font-size: 13px;">
+        <span class="kbd">T</span> 태스크
+      </div>
+      <div style="padding: 8px 16px; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border); font-size: 13px;">
+        <span class="kbd">&#8984;1~6</span> 상태 변경
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 8: Tech Stack -->
+  <div class="slide" data-index="10">
+    <div class="section-header">
+      <div class="slide-tag">Tech Stack</div>
+      <h2>기술 스택</h2>
+      <p>모던 웹 기술로 구축된 로컬 우선 아키텍처</p>
+    </div>
+    <div class="tech-grid">
+      <div class="tech-item">
+        <div class="tech-icon blue">&#9883;</div>
+        <div><div class="tech-name">Next.js 16</div><div class="tech-desc">App Router + API Routes</div></div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-icon cyan">&#9883;</div>
+        <div><div class="tech-name">React 19</div><div class="tech-desc">UI 프레임워크</div></div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-icon blue">&#128295;</div>
+        <div><div class="tech-name">TypeScript</div><div class="tech-desc">타입 안전성</div></div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-icon cyan">&#127912;</div>
+        <div><div class="tech-name">Tailwind CSS 4</div><div class="tech-desc">스타일링</div></div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-icon green">&#128451;</div>
+        <div><div class="tech-name">SQLite (sql.js)</div><div class="tech-desc">순수 JS, 네이티브 의존성 없음</div></div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-icon orange">&#129302;</div>
+        <div><div class="tech-name">Claude / Gemini / Codex</div><div class="tech-desc">AI CLI 멀티 에이전트</div></div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-icon pink">&#128268;</div>
+        <div><div class="tech-name">MCP</div><div class="tech-desc">Model Context Protocol</div></div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-icon green">&#128187;</div>
+        <div><div class="tech-name">Commander.js</div><div class="tech-desc">CLI 프레임워크</div></div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-icon red">&#128230;</div>
+        <div><div class="tech-name">npm package</div><div class="tech-desc">글로벌 설치 후 바로 사용</div></div>
+      </div>
+    </div>
+    <div style="margin-top: 36px; display: flex; gap: 24px; flex-wrap: wrap; justify-content: center;">
+      <div style="text-align: center;">
+        <div style="font-size: 32px; font-weight: 800; color: #fff;">100%</div>
+        <div style="font-size: 13px; color: var(--text-dim);">로컬 실행</div>
+      </div>
+      <div style="width: 1px; background: var(--border);"></div>
+      <div style="text-align: center;">
+        <div style="font-size: 32px; font-weight: 800; color: #fff;">0</div>
+        <div style="font-size: 13px; color: var(--text-dim);">외부 서버 의존</div>
+      </div>
+      <div style="width: 1px; background: var(--border);"></div>
+      <div style="text-align: center;">
+        <div style="font-size: 32px; font-weight: 800; color: #fff;">MIT</div>
+        <div style="font-size: 13px; color: var(--text-dim);">오픈소스 라이선스</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 9: Quick Start -->
+  <div class="slide" data-index="11">
+    <div class="bg-glow purple"></div>
+    <div class="bg-glow pink"></div>
+    <div class="section-header">
+      <div class="slide-tag">Quick Start</div>
+      <h2>지금 바로 시작하세요</h2>
+    </div>
+    <div class="code-block" style="max-width: 600px; font-size: 15px; line-height: 2;">
+      <div><span class="comment"># 1. 설치</span></div>
+      <div><span class="cmd">npm install -g</span> <span class="string">idea-manager</span></div>
+      <div></div>
+      <div><span class="comment"># 2. 실행</span></div>
+      <div><span class="cmd">im start</span></div>
+      <div></div>
+      <div><span class="comment"># 3. MCP 서버 연결 (선택)</span></div>
+      <div><span class="cmd">claude mcp add</span> <span class="string">idea-manager</span> <span class="flag">--</span> <span class="cmd">npx</span> <span class="flag">-y</span> <span class="string">idea-manager mcp</span></div>
+      <div></div>
+      <div><span class="comment"># 4. 자동 실행 (선택)</span></div>
+      <div><span class="cmd">im watch</span></div>
+    </div>
+    <div style="margin-top: 48px; text-align: center;">
+      <div style="font-size: 14px; color: var(--text-dim); margin-bottom: 16px;">Node.js 18+ 필요 &middot; AI CLI는 선택사항</div>
+      <a href="https://github.com/navskh/IM" target="_blank" style="
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 32px;
+        background: var(--accent);
+        color: #fff;
+        border-radius: 12px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 16px;
+        transition: all 0.2s;
+      ">
+        GitHub Repository &#10230;
+      </a>
+    </div>
+    <div style="margin-top: 48px; color: var(--text-muted); font-size: 13px; text-align: center;">
+      idea-manager v1.1.7 &middot; MIT License &middot; by navskh
+    </div>
+  </div>
+
+</div>
+
+<!-- Navigation Bar -->
+<div class="nav-bar">
+  <div class="nav-dots" id="navDots"></div>
+  <div class="nav-info" id="navInfo">1 / 10</div>
+  <div class="nav-arrows">
+    <button class="nav-btn" id="prevBtn" onclick="navigate(-1)">&#8592;</button>
+    <button class="nav-btn" id="nextBtn" onclick="navigate(1)">&#8594;</button>
+  </div>
+</div>
+
+<script>
+  let currentSlide = 0;
+  const slides = document.querySelectorAll('.slide');
+  const totalSlides = slides.length;
+
+  // Create dots
+  const dotsContainer = document.getElementById('navDots');
+  for (let i = 0; i < totalSlides; i++) {
+    const dot = document.createElement('button');
+    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+    dot.onclick = () => goToSlide(i);
+    dotsContainer.appendChild(dot);
+  }
+
+  function goToSlide(index) {
+    if (index < 0 || index >= totalSlides || index === currentSlide) return;
+
+    const direction = index > currentSlide ? 1 : -1;
+    const oldSlide = slides[currentSlide];
+    const newSlide = slides[index];
+
+    // Hide old slide
+    oldSlide.classList.remove('active');
+    if (direction > 0) {
+      oldSlide.classList.add('prev');
+    } else {
+      oldSlide.classList.remove('prev');
+    }
+
+    // Prepare new slide starting position (no transition)
+    newSlide.style.transition = 'none';
+    newSlide.style.opacity = '0';
+    newSlide.style.transform = direction > 0 ? 'translateX(60px)' : 'translateX(-60px)';
+    newSlide.classList.remove('prev');
+
+    currentSlide = index;
+
+    // Animate new slide in
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        newSlide.style.transition = '';
+        newSlide.style.opacity = '';
+        newSlide.style.transform = '';
+        newSlide.classList.add('active');
+      });
+    });
+
+    updateUI();
+  }
+
+  function navigate(direction) {
+    goToSlide(currentSlide + direction);
+  }
+
+  function updateUI() {
+    // Update dots
+    document.querySelectorAll('.nav-dot').forEach((dot, i) => {
+      dot.classList.toggle('active', i === currentSlide);
+    });
+
+    // Update info
+    document.getElementById('navInfo').textContent = `${currentSlide + 1} / ${totalSlides}`;
+
+    // Update buttons
+    document.getElementById('prevBtn').disabled = currentSlide === 0;
+    document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+  }
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') {
+      e.preventDefault();
+      navigate(1);
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      navigate(-1);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      goToSlide(0);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      goToSlide(totalSlides - 1);
+    }
+  });
+
+  // Touch/swipe support
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+  });
+  document.addEventListener('touchend', (e) => {
+    const diff = touchStartX - e.changedTouches[0].screenX;
+    if (Math.abs(diff) > 50) {
+      navigate(diff > 0 ? 1 : -1);
+    }
+  });
+
+  updateUI();
+</script>
+</body>
+</html>
