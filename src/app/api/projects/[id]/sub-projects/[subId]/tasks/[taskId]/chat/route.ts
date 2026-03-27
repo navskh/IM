@@ -59,7 +59,8 @@ ${brainstorm?.content ? `\nBrainstorming context:\n${brainstorm.content.slice(0,
 
   try {
     const agentType = project?.agent_type || 'claude';
-    const aiResponse = await runAgent(agentType, `${systemPrompt}\n\nConversation:\n${conversationText}`);
+    const cwd = project?.project_path || undefined;
+    const aiResponse = await runAgent(agentType, `${systemPrompt}\n\nConversation:\n${conversationText}`, undefined, undefined, { cwd });
     const trimmed = aiResponse.trim();
     if (!trimmed) {
       const fallbackMsg = addTaskConversation(taskId, 'assistant', '(AI 응답을 생성하지 못했습니다. 다시 시도해주세요.)');
