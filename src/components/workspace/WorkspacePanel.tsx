@@ -248,7 +248,7 @@ export default function WorkspacePanel({
     setConfirmAction({ type: 'delete-task', id: tid });
   };
 
-  const handleConfirmAction = async () => {
+  const handleConfirmAction = async (mode?: 'archive' | 'permanent') => {
     if (!confirmAction) return;
     if (confirmAction.type === 'delete-sub') {
       await fetch(`/api/projects/${id}/sub-projects/${confirmAction.id}`, { method: 'DELETE' });
@@ -258,7 +258,8 @@ export default function WorkspacePanel({
       }
       loadSubProjects();
     } else if (confirmAction.type === 'delete-task') {
-      await fetch(`/api/projects/${id}/sub-projects/${selectedSubId}/tasks/${confirmAction.id}`, { method: 'DELETE' });
+      const m = mode || 'archive';
+      await fetch(`/api/projects/${id}/sub-projects/${selectedSubId}/tasks/${confirmAction.id}?mode=${m}`, { method: 'DELETE' });
       setTasks(prev => prev.filter(t => t.id !== confirmAction.id));
       if (selectedTaskId === confirmAction.id) setSelectedTaskId(null);
       loadSubProjects();
@@ -537,13 +538,38 @@ export default function WorkspacePanel({
         <DirectoryPicker onSelect={handleSetPath} onCancel={() => setShowDirPicker(false)}
           initialPath={project.project_path || undefined} />
       )}
-      <ConfirmDialog open={!!confirmAction}
-        title={confirmAction?.type === 'delete-sub' ? 'Delete sub-project?' : 'Delete task?'}
-        description={confirmAction?.type === 'delete-sub'
-          ? 'This will delete the sub-project and all its tasks.'
-          : 'This task will be permanently deleted.'}
+      <ConfirmDialog open={confirmAction?.type === 'delete-sub'}
+        title="Delete sub-project?"
+        description="This will delete the sub-project and all its tasks."
         confirmLabel="Delete" variant="danger"
-        onConfirm={handleConfirmAction} onCancel={() => setConfirmAction(null)} />
+        onConfirm={() => handleConfirmAction()} onCancel={() => setConfirmAction(null)} />
+      {confirmAction?.type === 'delete-task' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)' }}>
+          <div className="bg-card border border-border rounded-xl shadow-2xl shadow-black/40 w-full max-w-sm mx-4 animate-dialog-in">
+            <div className="p-5">
+              <h3 className="text-sm font-semibold text-foreground">Remove task</h3>
+              <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                보관함에 넣으면 나중에 복원하거나 프롬프트를 참고할 수 있습니다.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 px-5 pb-4">
+              <button onClick={() => setConfirmAction(null)}
+                className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground bg-muted hover:bg-card-hover border border-border rounded-md transition-colors">
+                Cancel
+              </button>
+              <button onClick={() => handleConfirmAction('permanent')}
+                className="px-3 py-1.5 text-xs text-white bg-destructive hover:bg-destructive/80 rounded-md transition-colors">
+                Delete
+              </button>
+              <button onClick={() => handleConfirmAction('archive')}
+                className="px-3 py-1.5 text-xs text-white bg-primary hover:bg-primary-hover rounded-md transition-colors">
+                Archive
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <AiPolicyModal open={showAiPolicy} content={project.ai_context || ''}
         onSave={handleSaveAiPolicy} onClose={() => setShowAiPolicy(false)} />
       <GitSyncResultsModal

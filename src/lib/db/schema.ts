@@ -94,4 +94,13 @@ export function initSchema(db: any): void {
       FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
     );
   `);
+
+  // tasks archive migration
+  const taskCols = db.prepare("PRAGMA table_info(tasks)").all() as { name: string }[];
+  if (!taskCols.some(c => c.name === 'is_archived')) {
+    db.exec("ALTER TABLE tasks ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!taskCols.some(c => c.name === 'tags')) {
+    db.exec("ALTER TABLE tasks ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'");
+  }
 }

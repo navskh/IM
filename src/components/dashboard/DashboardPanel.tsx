@@ -34,7 +34,13 @@ export default function DashboardPanel() {
   const [loading, setLoading] = useState(true);
   const [showDirPicker, setShowDirPicker] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [archivedTasks, setArchivedTasks] = useState<(ITask & { projectName?: string; subProjectName?: string })[]>([]);
   const [memoContent, setMemoContent] = useState('');
+  const [showSync, setShowSync] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<{ initialized: boolean; remoteUrl?: string; lastCommit?: string } | null>(null);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncMessage, setSyncMessage] = useState('');
+  const [syncRepoUrl, setSyncRepoUrl] = useState('');
   const [memoOpen, setMemoOpen] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('im-memo-open') === 'true';
     return false;
@@ -109,9 +115,56 @@ export default function DashboardPanel() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVisible]);
 
+  const loadArchive = useCallback(async () => {
+    const res = await fetch('/api/archive');
+    const tasks: ITask[] = await res.json();
+    // Enrich with project/sub-project names
+    const enriched = tasks.map(t => {
+      const proj = projects.find(p => p.id === t.project_id);
+      const sub = proj?.subProjects.find(sp => sp.id === t.sub_project_id);
+      return { ...t, projectName: proj?.name, subProjectName: sub?.name };
+    });
+    setArchivedTasks(enriched);
+  }, [projects]);
+
+  const openSyncModal = async () => {
+    setShowSync(true);
+    setSyncMessage('');
+    const res = await fetch('/api/sync');
+    const data = await res.json();
+    setSyncStatus(data);
+  };
+
+  const handleSyncAction = async (action: string) => {
+    setSyncLoading(true);
+    setSyncMessage('');
+    try {
+      const res = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, repoUrl: syncRepoUrl }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSyncMessage(data.message || 'Success');
+        if (action === 'init') {
+          const status = await fetch('/api/sync').then(r => r.json());
+          setSyncStatus(status);
+        }
+        if (action === 'pull') fetchData();
+      } else {
+        setSyncMessage(`Error: ${data.error}`);
+      }
+    } catch {
+      setSyncMessage('Error: request failed');
+    }
+    setSyncLoading(false);
+  };
+
   const handleTabChange = (newTab: DashboardTab) => {
     setTab(newTab);
     localStorage.setItem('im-dashboard-tab', newTab);
+    if (newTab === 'archive') loadArchive();
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -170,7 +223,7 @@ export default function DashboardPanel() {
   };
 
   return (
-    <div className="h-full overflow-y-auto p-8 max-w-5xl mx-auto">
+    <div className="h-full overflow-y-auto p-8 w-full max-w-5xl mx-auto">
       <header className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -179,6 +232,13 @@ export default function DashboardPanel() {
         </div>
         <div className="flex items-center gap-3">
           <DashboardTabBar value={tab} onChange={handleTabChange} />
+          <button
+            onClick={openSyncModal}
+            className="px-3 py-2 text-sm border rounded-lg transition-colors bg-muted hover:bg-card-hover text-muted-foreground border-border"
+            title="DB Sync via Git"
+          >
+            Sync
+          </button>
           <button
             onClick={toggleMemo}
             className={`px-3 py-2 text-sm border rounded-lg transition-colors ${
@@ -244,6 +304,60 @@ export default function DashboardPanel() {
 
       {loading ? (
         <div className="text-center text-muted-foreground py-20">Loading...</div>
+      ) : tab === 'archive' ? (
+        archivedTasks.length === 0 ? (
+          <div className="text-center py-20 text-muted-foreground">
+            <p className="text-lg mb-2">No archived tasks</p>
+            <p className="text-sm">Archived tasks will appear here</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {archivedTasks.map((task) => (
+              <div key={task.id}
+                className="flex items-center gap-3 p-3 bg-card border border-border rounded-lg transition-colors group">
+                <span className="text-sm">{STATUS_ICONS[task.status]}</span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-medium">{task.title}</span>
+                  <span className="text-xs text-muted-foreground ml-2">
+                    {task.projectName}{task.subProjectName ? ` / ${task.subProjectName}` : ''}
+                  </span>
+                  {task.description && (
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{task.description}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={async () => {
+                      await fetch('/api/archive', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ taskId: task.id, action: 'restore' }),
+                      });
+                      loadArchive();
+                      fetchData();
+                    }}
+                    className="px-2 py-1 text-xs text-primary hover:bg-primary/10 rounded transition-colors"
+                  >
+                    Restore
+                  </button>
+                  <button
+                    onClick={async () => {
+                      await fetch('/api/archive', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ taskId: task.id, action: 'delete' }),
+                      });
+                      loadArchive();
+                    }}
+                    className="px-2 py-1 text-xs text-destructive hover:bg-destructive/10 rounded transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
       ) : tab === 'today' ? (
         todayTasks.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground">
@@ -333,6 +447,68 @@ export default function DashboardPanel() {
       {showDirPicker && (
         <DirectoryPicker onSelect={(path) => { setProjectPath(path); setShowDirPicker(false); }}
           onCancel={() => setShowDirPicker(false)} />
+      )}
+
+      {showSync && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowSync(false)} />
+          <div className="relative bg-card border border-border rounded-xl shadow-2xl w-[480px] animate-dialog-in">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+              <h3 className="text-sm font-semibold">DB Sync</h3>
+              <button onClick={() => setShowSync(false)} className="text-muted-foreground hover:text-foreground text-lg px-1">x</button>
+            </div>
+            <div className="p-5 space-y-4">
+              {syncStatus === null ? (
+                <p className="text-sm text-muted-foreground">Loading...</p>
+              ) : !syncStatus.initialized ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">Git 저장소 URL을 입력하세요.</p>
+                  <input
+                    value={syncRepoUrl}
+                    onChange={(e) => setSyncRepoUrl(e.target.value)}
+                    placeholder="https://github.com/user/repo.git"
+                    className="w-full bg-input border border-border rounded-lg px-3 py-2 text-sm focus:border-primary focus:outline-none text-foreground"
+                  />
+                  <button
+                    onClick={() => handleSyncAction('init')}
+                    disabled={syncLoading || !syncRepoUrl.trim()}
+                    className="w-full px-4 py-2 text-sm bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-50"
+                  >
+                    {syncLoading ? 'Initializing...' : 'Initialize'}
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="text-xs space-y-1">
+                    <p><span className="text-muted-foreground">Remote:</span> <span className="font-mono">{syncStatus.remoteUrl || 'none'}</span></p>
+                    <p><span className="text-muted-foreground">Last sync:</span> {syncStatus.lastCommit || 'never'}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleSyncAction('push')}
+                      disabled={syncLoading}
+                      className="flex-1 px-4 py-2 text-sm bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors disabled:opacity-50"
+                    >
+                      {syncLoading ? '...' : 'Push'}
+                    </button>
+                    <button
+                      onClick={() => handleSyncAction('pull')}
+                      disabled={syncLoading}
+                      className="flex-1 px-4 py-2 text-sm bg-muted text-foreground border border-border rounded-lg hover:bg-card-hover transition-colors disabled:opacity-50"
+                    >
+                      {syncLoading ? '...' : 'Pull'}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {syncMessage && (
+                <p className={`text-xs ${syncMessage.startsWith('Error') ? 'text-destructive' : 'text-success'}`}>
+                  {syncMessage}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       <ConfirmDialog open={!!deleteTarget} title="Delete project?"

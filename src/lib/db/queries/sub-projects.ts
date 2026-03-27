@@ -29,7 +29,7 @@ export function getSubProjectsWithStats(projectId: string): ISubProjectWithStats
         SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) as done_count,
         SUM(CASE WHEN status = 'problem' THEN 1 ELSE 0 END) as problem_count,
         MAX(updated_at) as last_activity
-      FROM tasks WHERE sub_project_id = ?
+      FROM tasks WHERE sub_project_id = ? AND is_archived = 0
     `).get(sp.id) as {
       task_count: number;
       active_count: number;
@@ -40,7 +40,7 @@ export function getSubProjectsWithStats(projectId: string): ISubProjectWithStats
     };
 
     const previewTasks = db.prepare(
-      `SELECT title, status FROM tasks WHERE sub_project_id = ?
+      `SELECT title, status FROM tasks WHERE sub_project_id = ? AND is_archived = 0
        ORDER BY CASE status
          WHEN 'submitted' THEN 0 WHEN 'testing' THEN 1 WHEN 'writing' THEN 2
          WHEN 'idea' THEN 3 WHEN 'problem' THEN 4 WHEN 'done' THEN 5

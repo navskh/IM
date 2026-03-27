@@ -188,6 +188,16 @@ netstat -ano | findstr :3456          # Windows (then taskkill /PID <pid> /F)
 
 ## Changelog
 
+### v1.3.0
+
+- **Task Archive** — Delete → Archive/Delete choice; archived tasks preserved with prompts and conversations
+- **Archive tab** — Dashboard tab to browse, restore, or permanently delete archived tasks
+- **DB Sync UI** — Dashboard Sync button with Git push/pull modal (init, push, pull)
+- **Gemini model fix** — Switch from gemini-3-flash-preview to gemini-2.5-flash (stable, better rate limits)
+- **Claude model upgrade** — Default model changed to Opus
+- **Auto Distribute improvements** — Better JSON parsing, error details in modal
+- **Chat cwd fix** — AI chat now runs in project's linked directory
+
 ### v1.2.0
 
 - **Auto Distribute** — AI-powered brainstorming to task distribution with preview/edit modal

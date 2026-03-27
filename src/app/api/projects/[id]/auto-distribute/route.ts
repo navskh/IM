@@ -64,17 +64,32 @@ Respond with this exact JSON structure:
   try {
     const agentType = project.agent_type || 'claude';
     const aiResponse = await runAgent(agentType, prompt);
-    const cleaned = aiResponse.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
 
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return NextResponse.json({ error: 'AI did not return valid JSON', raw: cleaned }, { status: 500 });
+    // Strip markdown fences and find JSON
+    let cleaned = aiResponse.trim();
+    // Remove markdown code blocks (```json ... ``` or ``` ... ```)
+    cleaned = cleaned.replace(/```(?:json)?\s*\n?/gi, '').replace(/\n?```/g, '');
+    cleaned = cleaned.trim();
+
+    // Try to find the distributions JSON object
+    const jsonMatch = cleaned.match(/\{\s*"distributions"\s*:\s*\[[\s\S]*\]\s*\}/);
+    // Fallback: any JSON object
+    const fallbackMatch = !jsonMatch ? cleaned.match(/\{[\s\S]*\}/) : null;
+    const matchStr = jsonMatch?.[0] || fallbackMatch?.[0];
+
+    if (!matchStr) {
+      return NextResponse.json({ error: 'AI did not return valid JSON', raw: cleaned.slice(0, 500) }, { status: 500 });
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    let parsed;
+    try {
+      parsed = JSON.parse(matchStr);
+    } catch {
+      return NextResponse.json({ error: 'JSON parse failed', raw: matchStr.slice(0, 500) }, { status: 500 });
+    }
 
     if (!parsed.distributions || !Array.isArray(parsed.distributions)) {
-      return NextResponse.json({ error: 'Invalid distribution format', raw: cleaned }, { status: 500 });
+      return NextResponse.json({ error: 'Invalid distribution format', raw: matchStr.slice(0, 500) }, { status: 500 });
     }
 
     // Map existing sub-project IDs

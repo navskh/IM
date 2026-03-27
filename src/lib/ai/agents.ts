@@ -14,7 +14,7 @@ const claudeConfig: AgentConfig = {
   binary: 'claude',
   buildArgs: ({ streaming }) => [
     '--dangerously-skip-permissions',
-    '--model', 'sonnet',
+    '--model', 'opus',
     ...(streaming
       ? ['--output-format', 'stream-json', '--verbose']
       : ['--output-format', 'text']),
@@ -57,6 +57,7 @@ const geminiConfig: AgentConfig = {
   binary: 'gemini',
   buildArgs: ({ streaming }) => [
     '--yolo',
+    '-m', 'gemini-2.5-flash',
     ...(streaming
       ? ['--output-format', 'stream-json']
       : ['--output-format', 'json']),

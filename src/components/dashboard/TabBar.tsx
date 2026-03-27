@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 
-export type DashboardTab = 'active' | 'all' | 'today';
+export type DashboardTab = 'active' | 'all' | 'today' | 'archive';
 
 const TABS: { key: DashboardTab; label: string }[] = [
   { key: 'active', label: 'Active' },
   { key: 'all', label: 'All' },
   { key: 'today', label: 'Today' },
+  { key: 'archive', label: 'Archive' },
 ];
 
 export default function TabBar({

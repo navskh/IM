@@ -44,6 +44,8 @@ export interface ITask {
   status: TaskStatus;
   priority: ItemPriority;
   is_today: boolean;
+  is_archived: boolean;
+  tags: string[];
   sort_order: number;
   created_at: string;
   updated_at: string;

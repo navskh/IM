@@ -60,7 +60,8 @@ export default function AutoDistributeModal({
       const res = await fetch(`/api/projects/${projectId}/auto-distribute`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || 'Failed to get distribution');
+        const rawInfo = data.raw ? `\n\nAI 응답:\n${data.raw}` : '';
+        setError((data.error || 'Failed to get distribution') + rawInfo);
         return;
       }
       setDistributions(data.distributions || []);
@@ -180,7 +181,7 @@ export default function AutoDistributeModal({
 
           {error && (
             <div className="bg-danger/10 border border-danger/30 rounded-lg p-3 mb-3">
-              <p className="text-xs text-danger">{error}</p>
+              <pre className="text-xs text-danger whitespace-pre-wrap break-all max-h-[200px] overflow-y-auto">{error}</pre>
               <button onClick={fetchDistribution} className="text-xs text-accent hover:underline mt-1">
                 다시 시도
               </button>

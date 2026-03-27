@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTask, updateTask, deleteTask } from '@/lib/db/queries/tasks';
+import { getTask, updateTask, deleteTask, archiveTask } from '@/lib/db/queries/tasks';
 import { ensureDb } from '@/lib/db';
 
 export async function GET(
@@ -30,14 +30,25 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string; subId: string; taskId: string }> },
 ) {
   await ensureDb();
   const { taskId } = await params;
-  const deleted = deleteTask(taskId);
-  if (!deleted) {
+  const mode = request.nextUrl.searchParams.get('mode') || 'archive';
+
+  if (mode === 'permanent') {
+    const deleted = deleteTask(taskId);
+    if (!deleted) {
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    }
+    return NextResponse.json({ success: true });
+  }
+
+  // Default: archive
+  const task = archiveTask(taskId);
+  if (!task) {
     return NextResponse.json({ error: 'Task not found' }, { status: 404 });
   }
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, archived: true });
 }

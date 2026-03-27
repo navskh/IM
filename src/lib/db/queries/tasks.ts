@@ -11,19 +11,23 @@ interface TaskRow {
   status: TaskStatus;
   priority: ItemPriority;
   is_today: number;
+  is_archived: number;
+  tags: string;
   sort_order: number;
   created_at: string;
   updated_at: string;
 }
 
 function rowToTask(row: TaskRow): ITask {
-  return { ...row, is_today: row.is_today === 1 };
+  let tags: string[] = [];
+  try { tags = JSON.parse(row.tags || '[]'); } catch { /* */ }
+  return { ...row, is_today: row.is_today === 1, is_archived: (row.is_archived ?? 0) === 1, tags };
 }
 
 export function getTasks(subProjectId: string): ITask[] {
   const db = getDb();
   const rows = db.prepare(
-    'SELECT * FROM tasks WHERE sub_project_id = ? ORDER BY sort_order ASC'
+    'SELECT * FROM tasks WHERE sub_project_id = ? AND is_archived = 0 ORDER BY sort_order ASC'
   ).all(subProjectId) as TaskRow[];
   return rows.map(rowToTask);
 }
@@ -37,7 +41,7 @@ export function getTask(id: string): ITask | undefined {
 export function getTasksByProject(projectId: string): ITask[] {
   const db = getDb();
   const rows = db.prepare(
-    'SELECT * FROM tasks WHERE project_id = ? ORDER BY sort_order ASC'
+    'SELECT * FROM tasks WHERE project_id = ? AND is_archived = 0 ORDER BY sort_order ASC'
   ).all(projectId) as TaskRow[];
   return rows.map(rowToTask);
 }
@@ -45,7 +49,7 @@ export function getTasksByProject(projectId: string): ITask[] {
 export function getTodayTasks(projectId: string): ITask[] {
   const db = getDb();
   const rows = db.prepare(
-    'SELECT * FROM tasks WHERE project_id = ? AND is_today = 1 ORDER BY sort_order ASC'
+    'SELECT * FROM tasks WHERE project_id = ? AND is_today = 1 AND is_archived = 0 ORDER BY sort_order ASC'
   ).all(projectId) as TaskRow[];
   return rows.map(rowToTask);
 }
@@ -53,9 +57,31 @@ export function getTodayTasks(projectId: string): ITask[] {
 export function getActiveTasks(projectId: string): ITask[] {
   const db = getDb();
   const rows = db.prepare(
-    "SELECT * FROM tasks WHERE project_id = ? AND status IN ('submitted','testing') ORDER BY sort_order ASC"
+    "SELECT * FROM tasks WHERE project_id = ? AND status IN ('submitted','testing') AND is_archived = 0 ORDER BY sort_order ASC"
   ).all(projectId) as TaskRow[];
   return rows.map(rowToTask);
+}
+
+export function getArchivedTasks(projectId?: string): ITask[] {
+  const db = getDb();
+  const rows = projectId
+    ? db.prepare('SELECT * FROM tasks WHERE project_id = ? AND is_archived = 1 ORDER BY updated_at DESC').all(projectId) as TaskRow[]
+    : db.prepare('SELECT * FROM tasks WHERE is_archived = 1 ORDER BY updated_at DESC').all() as TaskRow[];
+  return rows.map(rowToTask);
+}
+
+export function archiveTask(id: string): ITask | undefined {
+  const db = getDb();
+  const now = new Date().toISOString();
+  db.prepare('UPDATE tasks SET is_archived = 1, is_today = 0, updated_at = ? WHERE id = ?').run(now, id);
+  return getTask(id);
+}
+
+export function restoreTask(id: string): ITask | undefined {
+  const db = getDb();
+  const now = new Date().toISOString();
+  db.prepare('UPDATE tasks SET is_archived = 0, updated_at = ? WHERE id = ?').run(now, id);
+  return getTask(id);
 }
 
 export function createTask(data: {
@@ -91,6 +117,7 @@ export function updateTask(id: string, data: {
   is_today?: boolean;
   sort_order?: number;
   sub_project_id?: string;
+  tags?: string[];
 }): ITask | undefined {
   const db = getDb();
   const row = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id) as TaskRow | undefined;
@@ -100,7 +127,7 @@ export function updateTask(id: string, data: {
   db.prepare(`
     UPDATE tasks SET
       title = ?, description = ?, status = ?, priority = ?,
-      is_today = ?, sort_order = ?, sub_project_id = ?, updated_at = ?
+      is_today = ?, sort_order = ?, sub_project_id = ?, tags = ?, updated_at = ?
     WHERE id = ?
   `).run(
     data.title ?? row.title,
@@ -110,6 +137,7 @@ export function updateTask(id: string, data: {
     data.is_today !== undefined ? (data.is_today ? 1 : 0) : row.is_today,
     data.sort_order ?? row.sort_order,
     data.sub_project_id ?? row.sub_project_id,
+    data.tags ? JSON.stringify(data.tags) : row.tags,
     now,
     id,
   );
