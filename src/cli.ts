@@ -130,10 +130,10 @@ program
     const buildDir = path.join(PKG_ROOT, '.next');
     if (!fs.existsSync(buildDir)) {
       console.log('\n  IM - First run: building... (this may take a minute)\n');
-      const buildResult = spawn(process.execPath, [nextCli, 'build'], {
+      const buildResult = spawn(process.execPath, [nextCli, 'build', '--webpack'], {
         cwd: PKG_ROOT,
         stdio: 'inherit',
-        env: { ...process.env, NODE_ENV: 'production', NEXT_TURBOPACK: '0' },
+        env: { ...process.env, NODE_ENV: 'production' },
       });
       await new Promise<void>((resolve, reject) => {
         buildResult.on('exit', (code) => {
