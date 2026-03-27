@@ -130,7 +130,7 @@ program
     const buildDir = path.join(PKG_ROOT, '.next');
     if (!fs.existsSync(buildDir)) {
       console.log('\n  IM - First run: building... (this may take a minute)\n');
-      const buildResult = spawn(process.execPath, [nextCli, 'build', '--no-turbopack'], {
+      const buildResult = spawn(process.execPath, [nextCli, 'build'], {
         cwd: PKG_ROOT,
         stdio: 'inherit',
         env: { ...process.env, NODE_ENV: 'production' },
