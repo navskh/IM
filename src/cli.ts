@@ -133,7 +133,7 @@ program
       const buildResult = spawn(process.execPath, [nextCli, 'build'], {
         cwd: PKG_ROOT,
         stdio: 'inherit',
-        env: { ...process.env, NODE_ENV: 'production' },
+        env: { ...process.env, NODE_ENV: 'production', NEXT_TURBOPACK: '0' },
       });
       await new Promise<void>((resolve, reject) => {
         buildResult.on('exit', (code) => {
