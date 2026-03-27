@@ -9,6 +9,7 @@ class DatabaseWrapper {
   private db: any;
   private dbPath: string;
   private dirty = false;
+  private inTransaction = false;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   constructor(db: any, dbPath: string) {
@@ -25,7 +26,7 @@ class DatabaseWrapper {
 
   private immediatelySave() {
     this.dirty = true;
-    this.save();
+    if (!this.inTransaction) this.save();
   }
 
   private rowsToObjects(columns: string[], values: unknown[][]): Record<string, unknown>[] {
@@ -113,14 +114,17 @@ class DatabaseWrapper {
   transaction<T>(fn: () => T): () => T {
     const self = this;
     return () => {
+      self.inTransaction = true;
       self.db.run('BEGIN');
       try {
         const result = fn();
         self.db.run('COMMIT');
+        self.inTransaction = false;
         self.immediatelySave();
         return result;
       } catch (err) {
-        self.db.run('ROLLBACK');
+        self.inTransaction = false;
+        try { self.db.run('ROLLBACK'); } catch { /* already rolled back */ }
         throw err;
       }
     };

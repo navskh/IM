@@ -1,6 +1,6 @@
 {
   "name": "idea-manager",
-  "version": "1.3.7",
+  "version": "1.3.8",
   "description": "Turn free-form brainstorming into structured task trees with AI-generated prompts. Built-in MCP Server for autonomous AI agent execution. Local-first with SQLite, cross-PC sync via Git.",
   "keywords": [
     "brainstorm",
