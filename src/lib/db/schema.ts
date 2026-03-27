@@ -79,6 +79,12 @@ export function initSchema(db: any): void {
       FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
     );
 
+    CREATE TABLE IF NOT EXISTS global_memos (
+      id TEXT PRIMARY KEY,
+      content TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS task_conversations (
       id TEXT PRIMARY KEY,
       task_id TEXT NOT NULL,

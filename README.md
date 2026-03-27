@@ -134,8 +134,11 @@ im watch --interval 30 --dry-run  # Preview mode
 - **Tab-based Navigation** — Multiple projects open simultaneously
 - **File Tree Drawer** — Browse linked project directories
 - **Brainstorming Panel** — Free-form notes with inline AI memos
+- **Auto Distribute** — AI analyzes brainstorming and distributes tasks to sub-projects with preview/edit modal
 - **Prompt Editor** — Write/edit/copy prompts per task
-- **AI Chat** — Per-task conversations to refine work
+- **AI Chat** — Per-task conversations to refine work, with loading/done indicators in project tree
+- **Quick Memo** — Global scratchpad on dashboard for free-form notes (auto-saved)
+- **Morning Notifications** — Daily macOS notification at 9 AM with today's tasks summary
 - **Dashboard** — Active / All / Today views
 - **Keyboard Shortcuts** — `B` brainstorm, `N` sub-project, `T` task, `Cmd+1~6` status
 
@@ -182,6 +185,22 @@ export PATH="$(npm prefix -g)/bin:$PATH"
 lsof -t -i :3456 | xargs kill -9    # macOS/Linux
 netstat -ano | findstr :3456          # Windows (then taskkill /PID <pid> /F)
 ```
+
+## Changelog
+
+### v1.2.0
+
+- **Auto Distribute** — AI-powered brainstorming to task distribution with preview/edit modal
+- **Quick Memo** — Global scratchpad on dashboard (auto-saved to DB)
+- **Chat state indicators** — Loading/done badges on tasks in project tree (persists until task opened)
+- **Chat isolation fix** — Switching tasks no longer mixes AI responses between tasks
+- **Morning scheduler** — Daily 9 AM macOS notification with today's tasks summary
+- **Gemini JSON parsing** — Fix raw JSON display in Gemini chat responses
+- **Resizable description** — Task description textarea is now vertically resizable
+
+### v1.1.7
+
+- Fix: write DB to disk immediately instead of delayed save
 
 ## License
 

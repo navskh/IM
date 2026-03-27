@@ -49,6 +49,8 @@ export default function ProjectTree({
   onTodayToggle,
   onDeleteTask,
   onReorderSubs,
+  onAutoDistribute,
+  chatStates,
 }: {
   subProjects: ISubProjectWithStats[];
   tasks: ITask[];
@@ -63,6 +65,8 @@ export default function ProjectTree({
   onTodayToggle: (taskId: string, isToday: boolean) => void;
   onDeleteTask: (taskId: string) => void;
   onReorderSubs?: (orderedIds: string[]) => void;
+  onAutoDistribute?: () => void;
+  chatStates?: Record<string, 'idle' | 'loading' | 'done'>;
 }) {
   const [collapsedSubs, setCollapsedSubs] = useState<Set<string>>(new Set());
   const [addingTaskFor, setAddingTaskFor] = useState<string | null>(null);
@@ -120,6 +124,15 @@ export default function ProjectTree({
           >
             {subProjects.length > 0 && subProjects.every(sp => collapsedSubs.has(sp.id)) ? '\u25B6' : '\u25BC'}
           </button>
+          {onAutoDistribute && (
+            <button
+              onClick={onAutoDistribute}
+              className="text-[10px] px-1.5 py-0.5 bg-accent/15 text-accent border border-accent/30 rounded hover:bg-accent/25 transition-colors"
+              title="AI auto-distribute brainstorming to tasks"
+            >
+              Auto
+            </button>
+          )}
           <button
             onClick={onCreateSub}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -159,6 +172,7 @@ export default function ProjectTree({
                 onAddTask={handleAddTask}
                 onSetAddingTaskFor={setAddingTaskFor}
                 onSetNewTaskTitle={setNewTaskTitle}
+                chatStates={chatStates}
               />
             ))}
           </SortableContext>
@@ -186,6 +200,7 @@ function SortableSubProject({
   onAddTask,
   onSetAddingTaskFor,
   onSetNewTaskTitle,
+  chatStates,
 }: {
   sp: ISubProjectWithStats;
   isSelected: boolean;
@@ -204,6 +219,7 @@ function SortableSubProject({
   onAddTask: (subId: string) => void;
   onSetAddingTaskFor: (subId: string | null) => void;
   onSetNewTaskTitle: (title: string) => void;
+  chatStates?: Record<string, 'idle' | 'loading' | 'done'>;
 }) {
   const {
     attributes,
@@ -309,6 +325,17 @@ function SortableSubProject({
               <span className={`flex-1 truncate ${task.status === 'done' ? 'text-muted-foreground line-through' : ''}`}>
                 {task.title}
               </span>
+              {chatStates?.[task.id] === 'loading' && (
+                <span className="flex-shrink-0 flex items-center gap-1 text-[10px] text-warning" title="AI 응답 대기 중">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
+                  AI...
+                </span>
+              )}
+              {chatStates?.[task.id] === 'done' && (
+                <span className="flex-shrink-0 text-[10px] text-success" title="AI 응답 완료">
+                  ✓
+                </span>
+              )}
               {task.is_today && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onTodayToggle(task.id, false); }}

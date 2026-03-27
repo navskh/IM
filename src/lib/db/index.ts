@@ -1,6 +1,7 @@
 import fs from 'fs';
 import { getDbPath } from '../utils/paths';
 import { initSchema } from './schema';
+import { initScheduler } from '../scheduler';
 
 // Compatibility wrapper: mimics better-sqlite3 API on top of sql.js
 class DatabaseWrapper {
@@ -154,6 +155,9 @@ async function initAsync(): Promise<DatabaseWrapper> {
   initSchema(wrapper as unknown as Parameters<typeof initSchema>[0]);
 
   process.on('exit', () => wrapper?.close());
+
+  // Start morning notification scheduler
+  initScheduler();
 
   return wrapper;
 }

@@ -10,6 +10,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import AiPolicyModal from '@/components/ui/AiPolicyModal';
 import GitSyncResultsModal from '@/components/dashboard/GitSyncResultsModal';
 import FileTreeDrawer from '@/components/ui/FileTreeDrawer';
+import AutoDistributeModal from '@/components/ui/AutoDistributeModal';
 import type { ISubProject, ITask, TaskStatus, ISubProjectWithStats, IGitSyncResult } from '@/types';
 
 interface IProject {
@@ -65,6 +66,8 @@ export default function WorkspacePanel({
   const [syncResults, setSyncResults] = useState<IGitSyncResult[] | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [showFileTree, setShowFileTree] = useState(false);
+  const [showAutoDistribute, setShowAutoDistribute] = useState(false);
+  const [chatStates, setChatStates] = useState<Record<string, 'idle' | 'loading' | 'done'>>({});
   const syncingRef = useRef(false);
 
   // Resizable panel widths
@@ -494,11 +497,21 @@ export default function WorkspacePanel({
           <ProjectTree subProjects={subProjects} tasks={tasks}
             selectedSubId={selectedSubId} selectedTaskId={selectedTaskId}
             onSelectSub={(subId) => { setSelectedSubId(subId); setSelectedTaskId(null); }}
-            onSelectTask={setSelectedTaskId}
+            onSelectTask={(taskId) => {
+              setSelectedTaskId(taskId);
+              setChatStates(prev => {
+                if (prev[taskId] !== 'done') return prev;
+                const next = { ...prev };
+                delete next[taskId];
+                return next;
+              });
+            }}
             onCreateSub={() => setShowAddSub(true)} onDeleteSub={handleDeleteSubProject}
             onCreateTask={handleCreateTask} onStatusChange={handleTaskStatusChange}
             onTodayToggle={handleTaskTodayToggle} onDeleteTask={handleTaskDelete}
-            onReorderSubs={handleReorderSubs} />
+            onReorderSubs={handleReorderSubs}
+            onAutoDistribute={() => setShowAutoDistribute(true)}
+            chatStates={chatStates} />
         </div>
 
         <div className="panel-resize-handle" onMouseDown={(e) => handleMouseDown('center', e)}>
@@ -508,7 +521,10 @@ export default function WorkspacePanel({
         <div className="flex-1 min-w-0">
           {selectedTask ? (
             <TaskDetail task={selectedTask} projectId={id} subProjectId={selectedSubId!}
-              onUpdate={handleTaskUpdate} onDelete={handleTaskDelete} />
+              onUpdate={handleTaskUpdate} onDelete={handleTaskDelete}
+              onChatStateChange={(taskId, state) => {
+                setChatStates(prev => ({ ...prev, [taskId]: state }));
+              }} />
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
               {tasks.length > 0 ? 'Select a task' : selectedSubId ? 'Create a task to get started' : 'Select a sub-project'}
@@ -541,6 +557,12 @@ export default function WorkspacePanel({
           onClose={() => setShowFileTree(false)}
         />
       )}
+      <AutoDistributeModal
+        open={showAutoDistribute}
+        projectId={id}
+        onClose={() => setShowAutoDistribute(false)}
+        onApplied={() => { loadSubProjects(); }}
+      />
     </div>
   );
 }

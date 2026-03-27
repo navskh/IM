@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTabContext } from '@/components/tabs/TabContext';
 import DirectoryPicker from '@/components/DirectoryPicker';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
@@ -34,6 +34,12 @@ export default function DashboardPanel() {
   const [loading, setLoading] = useState(true);
   const [showDirPicker, setShowDirPicker] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [memoContent, setMemoContent] = useState('');
+  const [memoOpen, setMemoOpen] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('im-memo-open') === 'true';
+    return false;
+  });
+  const memoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [tab, setTab] = useState<DashboardTab>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('im-dashboard-tab') as DashboardTab) || 'active';
@@ -76,7 +82,26 @@ export default function DashboardPanel() {
 
   useEffect(() => {
     fetchData();
+    fetch('/api/global-memo').then(r => r.json()).then(d => setMemoContent(d.content || ''));
   }, [fetchData]);
+
+  const handleMemoChange = (value: string) => {
+    setMemoContent(value);
+    if (memoSaveTimer.current) clearTimeout(memoSaveTimer.current);
+    memoSaveTimer.current = setTimeout(() => {
+      fetch('/api/global-memo', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: value }),
+      });
+    }, 500);
+  };
+
+  const toggleMemo = () => {
+    const next = !memoOpen;
+    setMemoOpen(next);
+    localStorage.setItem('im-memo-open', String(next));
+  };
 
   // Refresh when tab becomes visible
   useEffect(() => {
@@ -155,6 +180,17 @@ export default function DashboardPanel() {
         <div className="flex items-center gap-3">
           <DashboardTabBar value={tab} onChange={handleTabChange} />
           <button
+            onClick={toggleMemo}
+            className={`px-3 py-2 text-sm border rounded-lg transition-colors ${
+              memoOpen
+                ? 'bg-accent/15 text-accent border-accent/30 hover:bg-accent/25'
+                : 'bg-muted hover:bg-card-hover text-muted-foreground border-border'
+            }`}
+            title="Quick memo"
+          >
+            Memo
+          </button>
+          <button
             onClick={() => setShowForm(!showForm)}
             className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg
                        transition-colors font-medium text-sm"
@@ -163,6 +199,23 @@ export default function DashboardPanel() {
           </button>
         </div>
       </header>
+
+      {memoOpen && (
+        <div className="mb-6 bg-card rounded-lg border border-border overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-border">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Quick Memo</span>
+            <span className="text-[10px] text-muted-foreground">auto-saved</span>
+          </div>
+          <textarea
+            value={memoContent}
+            onChange={(e) => handleMemoChange(e.target.value)}
+            placeholder="자유롭게 메모하세요..."
+            className="w-full bg-transparent px-4 py-3 text-sm text-foreground resize-none
+                       focus:outline-none leading-relaxed font-mono min-h-[150px] max-h-[400px]"
+            style={{ height: Math.max(150, Math.min(400, (memoContent.split('\n').length + 1) * 22)) }}
+          />
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={handleCreate} className="mb-6 p-5 bg-card rounded-lg border border-border">

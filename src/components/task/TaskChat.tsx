@@ -23,16 +23,26 @@ export default function TaskChat({
   basePath,
   taskStatus,
   onApplyToPrompt,
+  onChatStateChange,
 }: {
   basePath: string;
   taskStatus?: TaskStatus;
   onApplyToPrompt: (content: string) => void;
+  onChatStateChange?: (state: 'idle' | 'loading' | 'done') => void;
 }) {
   const [messages, setMessages] = useState<ITaskConversation[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const basePathRef = useRef(basePath);
+
+  // Track basePath changes — reset state and abort stale responses
+  useEffect(() => {
+    basePathRef.current = basePath;
+    setMessages([]);
+    setLoading(false);
+  }, [basePath]);
 
   // Request notification permission on mount
   useEffect(() => {
@@ -42,9 +52,11 @@ export default function TaskChat({
   }, []);
 
   const fetchMessages = useCallback(() => {
-    fetch(`${basePath}/chat`)
+    const currentPath = basePath;
+    fetch(`${currentPath}/chat`)
       .then(r => r.json())
       .then(data => {
+        if (basePathRef.current !== currentPath) return;
         if (Array.isArray(data)) setMessages(data);
       });
   }, [basePath]);
@@ -69,8 +81,10 @@ export default function TaskChat({
     const text = input.trim();
     if (!text || loading) return;
 
+    const sendPath = basePath;
     setInput('');
     setLoading(true);
+    onChatStateChange?.('loading');
 
     // Optimistic user message
     const tempId = `temp-${Date.now()}`;
@@ -81,11 +95,16 @@ export default function TaskChat({
     setMessages(prev => [...prev, userMsg]);
 
     try {
-      const res = await fetch(`${basePath}/chat`, {
+      const res = await fetch(`${sendPath}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text }),
       });
+      if (basePathRef.current !== sendPath) {
+        // Task switched, but response arrived — notify done
+        onChatStateChange?.('done');
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         setMessages(prev => {
@@ -97,9 +116,12 @@ export default function TaskChat({
         }
       }
     } catch { /* silent */ }
-    setLoading(false);
-    inputRef.current?.focus();
-  }, [input, loading, basePath]);
+    if (basePathRef.current === sendPath) {
+      setLoading(false);
+      inputRef.current?.focus();
+    }
+    onChatStateChange?.('done');
+  }, [input, loading, basePath, onChatStateChange]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

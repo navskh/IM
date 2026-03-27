@@ -72,6 +72,16 @@ const geminiConfig: AgentConfig = {
     }
     return null;
   },
+  cleanOutput: (text) => {
+    const trimmed = text.trim();
+    if (!trimmed.startsWith('{')) return trimmed;
+    try {
+      const parsed = JSON.parse(trimmed);
+      return (parsed.response || parsed.text || parsed.result || trimmed) as string;
+    } catch {
+      return trimmed;
+    }
+  },
 };
 
 const codexConfig: AgentConfig = {

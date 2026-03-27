@@ -12,12 +12,14 @@ export default function TaskDetail({
   subProjectId,
   onUpdate,
   onDelete,
+  onChatStateChange,
 }: {
   task: ITask;
   projectId: string;
   subProjectId: string;
   onUpdate: (data: Partial<ITask>) => void;
   onDelete: () => void;
+  onChatStateChange?: (taskId: string, state: 'idle' | 'loading' | 'done') => void;
 }) {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
@@ -171,8 +173,8 @@ export default function TaskDetail({
           onBlur={saveDescription}
           placeholder="Background, conditions, notes..."
           className="w-full bg-input border border-border rounded-lg px-3 py-2 text-sm
-                     focus:border-primary focus:outline-none text-foreground resize-none
-                     leading-relaxed"
+                     focus:border-primary focus:outline-none text-foreground resize-y
+                     leading-relaxed min-h-[3.5rem] max-h-[300px]"
           rows={2}
         />
       </div>
@@ -183,6 +185,7 @@ export default function TaskDetail({
           basePath={basePath}
           taskStatus={task.status}
           onApplyToPrompt={handleApplyToPrompt}
+          onChatStateChange={onChatStateChange ? (state) => onChatStateChange(task.id, state) : undefined}
         />
       </div>
 
