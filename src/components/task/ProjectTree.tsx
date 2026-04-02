@@ -44,6 +44,7 @@ export default function ProjectTree({
   onSelectTask,
   onCreateSub,
   onDeleteSub,
+  onRenameSub,
   onCreateTask,
   onStatusChange,
   onTodayToggle,
@@ -60,6 +61,7 @@ export default function ProjectTree({
   onSelectTask: (taskId: string) => void;
   onCreateSub: () => void;
   onDeleteSub: (subId: string) => void;
+  onRenameSub?: (subId: string, name: string) => void;
   onCreateTask: (title: string) => void;
   onStatusChange: (taskId: string, status: TaskStatus) => void;
   onTodayToggle: (taskId: string, isToday: boolean) => void;
@@ -166,6 +168,7 @@ export default function ProjectTree({
                 onSelectTask={onSelectTask}
                 onToggleCollapse={toggleCollapse}
                 onDeleteSub={onDeleteSub}
+                onRenameSub={onRenameSub}
                 onStatusChange={onStatusChange}
                 onTodayToggle={onTodayToggle}
                 onDeleteTask={onDeleteTask}
@@ -194,6 +197,7 @@ function SortableSubProject({
   onSelectTask,
   onToggleCollapse,
   onDeleteSub,
+  onRenameSub,
   onStatusChange,
   onTodayToggle,
   onDeleteTask,
@@ -213,6 +217,7 @@ function SortableSubProject({
   onSelectTask: (taskId: string) => void;
   onToggleCollapse: (subId: string) => void;
   onDeleteSub: (subId: string) => void;
+  onRenameSub?: (subId: string, name: string) => void;
   onStatusChange: (taskId: string, status: TaskStatus) => void;
   onTodayToggle: (taskId: string, isToday: boolean) => void;
   onDeleteTask: (taskId: string) => void;
@@ -221,6 +226,9 @@ function SortableSubProject({
   onSetNewTaskTitle: (title: string) => void;
   chatStates?: Record<string, 'idle' | 'loading' | 'done'>;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState(sp.name);
+
   const {
     attributes,
     listeners,
@@ -237,11 +245,20 @@ function SortableSubProject({
     zIndex: isDragging ? 10 : undefined,
   };
 
+  const handleRenameSubmit = () => {
+    const trimmed = editValue.trim();
+    if (trimmed && trimmed !== sp.name && onRenameSub) {
+      onRenameSub(sp.id, trimmed);
+    }
+    setEditing(false);
+  };
+
   return (
     <div ref={setNodeRef} style={style} className="mb-0.5">
       {/* Sub-project node */}
       <div
         onClick={() => {
+          if (editing) return;
           if (isSelected) {
             onToggleCollapse(sp.id);
           } else {
@@ -276,13 +293,44 @@ function SortableSubProject({
           if (!st) return null;
           return <span className={`w-2 h-2 rounded-full ${st.dotClass} flex-shrink-0`} title={st.title} />;
         })()}
-        <span className={`flex-1 truncate font-medium ${isSelected ? 'text-primary' : ''}`}>
-          {sp.name}
-        </span>
+        {editing ? (
+          <input
+            type="text"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleRenameSubmit();
+              if (e.key === 'Escape') { setEditValue(sp.name); setEditing(false); }
+            }}
+            onBlur={handleRenameSubmit}
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1 min-w-0 bg-input border border-primary rounded px-1 py-0 text-sm font-medium focus:outline-none text-foreground"
+            autoFocus
+          />
+        ) : (
+          <span
+            className={`flex-1 truncate font-medium ${isSelected ? 'text-primary' : ''}`}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              setEditValue(sp.name);
+              setEditing(true);
+            }}
+            title="Double-click to rename"
+          >
+            {sp.name}
+          </span>
+        )}
         <div className="flex items-center gap-1.5">
           {sp.task_count > 0 && (
             <span className="text-xs text-muted-foreground tabular-nums">{sp.task_count}</span>
           )}
+          <button
+            onClick={(e) => { e.stopPropagation(); setEditValue(sp.name); setEditing(true); }}
+            className="text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+            title="Rename"
+          >
+            ✎
+          </button>
           <button
             onClick={(e) => { e.stopPropagation(); onDeleteSub(sp.id); }}
             className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity text-xs"

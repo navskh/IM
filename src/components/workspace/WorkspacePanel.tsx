@@ -508,6 +508,14 @@ export default function WorkspacePanel({
               });
             }}
             onCreateSub={() => setShowAddSub(true)} onDeleteSub={handleDeleteSubProject}
+            onRenameSub={async (subId, name) => {
+              const res = await fetch(`/api/projects/${id}/sub-projects/${subId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name }),
+              });
+              if (res.ok) loadSubProjects();
+            }}
             onCreateTask={handleCreateTask} onStatusChange={handleTaskStatusChange}
             onTodayToggle={handleTaskTodayToggle} onDeleteTask={handleTaskDelete}
             onReorderSubs={handleReorderSubs}
