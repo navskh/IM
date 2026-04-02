@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "IM - 아이디어 매니저",
-  description: "아이디어에서 실행 가능한 프롬프트까지, 멀티 프로젝트 워크플로우 매니저",
+  description: "아이디어에서 실행 가능한 프롬프트까지, 멀티 워크스페이스 워크플로우 매니저",
   icons: {
     icon: '/favicon.svg',
     apple: '/icon-192.png',

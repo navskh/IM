@@ -36,6 +36,11 @@ export default function DashboardPanel() {
   const [loading, setLoading] = useState(true);
   const [showDirPicker, setShowDirPicker] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [editTarget, setEditTarget] = useState<ProjectWithSubs | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editPath, setEditPath] = useState('');
+  const [showEditDirPicker, setShowEditDirPicker] = useState(false);
   const [archivedTasks, setArchivedTasks] = useState<(ITask & { projectName?: string; subProjectName?: string })[]>([]);
   const [memoContent, setMemoContent] = useState('');
   const [showSync, setShowSync] = useState(false);
@@ -201,6 +206,31 @@ export default function DashboardPanel() {
     fetchData();
   };
 
+  const handleEditClick = (project: ProjectWithSubs, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditTarget(project);
+    setEditName(project.name);
+    setEditDescription(project.description);
+    setEditPath(project.project_path || '');
+  };
+
+  const handleEditSave = async () => {
+    if (!editTarget || !editName.trim()) return;
+    const res = await fetch(`/api/projects/${editTarget.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: editName.trim(),
+        description: editDescription.trim(),
+        project_path: editPath.trim() || null,
+      }),
+    });
+    if (res.ok) {
+      setEditTarget(null);
+      fetchData();
+    }
+  };
+
   const getVisibleCards = (): { sp: ISubProjectWithStats; projectName: string; projectId: string }[] => {
     const cards: { sp: ISubProjectWithStats; projectName: string; projectId: string }[] = [];
     for (const p of projects) {
@@ -293,7 +323,7 @@ export default function DashboardPanel() {
             className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg
                        transition-colors font-medium text-sm"
           >
-            + Project
+            + Workspace
           </button>
         </div>
       </header>
@@ -368,7 +398,7 @@ export default function DashboardPanel() {
 
       {showForm && (
         <form onSubmit={handleCreate} className="mb-6 p-5 bg-card rounded-lg border border-border">
-          <input type="text" placeholder="Project name" value={name}
+          <input type="text" placeholder="Workspace name" value={name}
             onChange={(e) => setName(e.target.value)}
             className="w-full bg-input border border-border rounded-lg px-4 py-2.5 mb-3 focus:border-primary focus:outline-none text-foreground"
             autoFocus />
@@ -379,7 +409,7 @@ export default function DashboardPanel() {
             <button type="button" onClick={() => setShowDirPicker(true)}
               className="w-full bg-input border border-border rounded-lg px-4 py-2.5 text-left text-sm hover:border-primary transition-colors">
               {projectPath ? <span className="font-mono text-foreground">{projectPath}</span>
-                : <span className="text-muted-foreground">Project folder (optional)</span>}
+                : <span className="text-muted-foreground">Workspace folder (optional)</span>}
             </button>
           </div>
           <div className="flex gap-2 justify-end">
@@ -473,8 +503,8 @@ export default function DashboardPanel() {
           {tab === 'all' ? (
             projects.length === 0 ? (
               <div className="text-center py-20">
-                <p className="text-muted-foreground text-lg mb-2">No projects yet</p>
-                <p className="text-muted-foreground text-sm">Click + Project to get started</p>
+                <p className="text-muted-foreground text-lg mb-2">No workspaces yet</p>
+                <p className="text-muted-foreground text-sm">Click + Workspace to get started</p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -488,14 +518,18 @@ export default function DashboardPanel() {
                           <span className="text-xs text-muted-foreground font-mono truncate max-w-48">{project.project_path}</span>
                         )}
                       </div>
-                      <button onClick={(e) => handleDeleteClick(project.id, e)}
-                        className="text-xs text-muted-foreground hover:text-destructive transition-colors">Delete</button>
+                      <div className="flex items-center gap-2">
+                        <button onClick={(e) => handleEditClick(project, e)}
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors">Edit</button>
+                        <button onClick={(e) => handleDeleteClick(project.id, e)}
+                          className="text-xs text-muted-foreground hover:text-destructive transition-colors">Delete</button>
+                      </div>
                     </div>
                     {project.subProjects.length === 0 ? (
                       <div className="text-xs text-muted-foreground py-4 text-center border border-dashed border-border rounded-lg">
-                        No sub-projects.{' '}
+                        No projects.{' '}
                         <span className="text-primary cursor-pointer hover:underline"
-                          onClick={() => openProject(project.id, project.name)}>Open project</span>{' '}to add one.
+                          onClick={() => openProject(project.id, project.name)}>Open workspace</span>{' '}to add one.
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -600,8 +634,52 @@ export default function DashboardPanel() {
         </div>
       )}
 
-      <ConfirmDialog open={!!deleteTarget} title="Delete project?"
-        description="This will permanently delete the project and all its data."
+      {/* Workspace Edit Modal */}
+      {editTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditTarget(null)} />
+          <div className="relative bg-card border border-border rounded-xl shadow-2xl w-[480px] animate-dialog-in">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+              <h3 className="text-sm font-semibold">Edit Workspace</h3>
+              <button onClick={() => setEditTarget(null)} className="text-muted-foreground hover:text-foreground text-lg px-1">x</button>
+            </div>
+            <div className="p-5 space-y-3">
+              <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
+                placeholder="Workspace name"
+                className="w-full bg-input border border-border rounded-lg px-4 py-2.5 focus:border-primary focus:outline-none text-foreground"
+                autoFocus />
+              <input type="text" value={editDescription} onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Description (optional)"
+                className="w-full bg-input border border-border rounded-lg px-4 py-2.5 focus:border-primary focus:outline-none text-foreground" />
+              <button type="button" onClick={() => setShowEditDirPicker(true)}
+                className="w-full bg-input border border-border rounded-lg px-4 py-2.5 text-left text-sm hover:border-primary transition-colors">
+                {editPath ? <span className="font-mono text-foreground">{editPath}</span>
+                  : <span className="text-muted-foreground">Workspace folder (optional)</span>}
+              </button>
+              {editPath && (
+                <button type="button" onClick={() => setEditPath('')}
+                  className="text-xs text-muted-foreground hover:text-destructive transition-colors">
+                  Clear folder link
+                </button>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 px-5 py-3 border-t border-border">
+              <button onClick={() => setEditTarget(null)}
+                className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors text-sm">Cancel</button>
+              <button onClick={handleEditSave} disabled={!editName.trim()}
+                className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors text-sm disabled:opacity-50">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEditDirPicker && (
+        <DirectoryPicker onSelect={(path) => { setEditPath(path); setShowEditDirPicker(false); }}
+          onCancel={() => setShowEditDirPicker(false)} initialPath={editPath || undefined} />
+      )}
+
+      <ConfirmDialog open={!!deleteTarget} title="Delete workspace?"
+        description="This will permanently delete the workspace and all its data."
         confirmLabel="Delete" variant="danger"
         onConfirm={handleDeleteConfirm} onCancel={() => setDeleteTarget(null)} />
     </div>

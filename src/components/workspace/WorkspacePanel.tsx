@@ -490,7 +490,7 @@ export default function WorkspacePanel({
                   if (e.key === 'Enter') handleCreateSubProject();
                   if (e.key === 'Escape') { setNewSubName(''); setShowAddSub(false); }
                 }}
-                placeholder="Sub-project name..."
+                placeholder="Project name..."
                 className="w-full bg-input border border-border rounded px-2 py-1 text-xs focus:border-primary focus:outline-none text-foreground"
                 autoFocus />
             </div>
@@ -528,7 +528,7 @@ export default function WorkspacePanel({
               }} />
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-              {tasks.length > 0 ? 'Select a task' : selectedSubId ? 'Create a task to get started' : 'Select a sub-project'}
+              {tasks.length > 0 ? 'Select a task' : selectedSubId ? 'Create a task to get started' : 'Select a project'}
             </div>
           )}
         </div>
@@ -539,8 +539,8 @@ export default function WorkspacePanel({
           initialPath={project.project_path || undefined} />
       )}
       <ConfirmDialog open={confirmAction?.type === 'delete-sub'}
-        title="Delete sub-project?"
-        description="This will delete the sub-project and all its tasks."
+        title="Delete project?"
+        description="This will delete the project and all its tasks."
         confirmLabel="Delete" variant="danger"
         onConfirm={() => handleConfirmAction()} onCancel={() => setConfirmAction(null)} />
       {confirmAction?.type === 'delete-task' && (

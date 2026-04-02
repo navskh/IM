@@ -136,7 +136,7 @@ export default function ProjectTree({
           <button
             onClick={onCreateSub}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-            title="Add sub-project (N)"
+            title="Add project (N)"
           >
             + <span className="text-muted-foreground/50">N</span>
           </button>
@@ -146,7 +146,7 @@ export default function ProjectTree({
       <div className="flex-1 overflow-y-auto py-1">
         {subProjects.length === 0 && (
           <div className="text-center py-8 text-muted-foreground text-xs">
-            Create a sub-project to get started
+            Create a project to get started
           </div>
         )}
 

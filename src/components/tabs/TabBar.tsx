@@ -25,7 +25,7 @@ export default function TabBar() {
             className={`tab-item ${isActive ? 'tab-item-active' : ''}`}
           >
             <span className="truncate">
-              {isDashboard ? 'Dashboard' : tab.projectName || 'Project'}
+              {isDashboard ? 'Dashboard' : tab.projectName || 'Workspace'}
             </span>
             {!isDashboard && (
               <button
