@@ -222,6 +222,30 @@ export default function DashboardPanel() {
     testing: '\u{1F9EA}', done: '\u{2705}', problem: '\u{1F534}',
   };
 
+  // ── 전체 요약 집계 ──
+  const summary = (() => {
+    let total = 0, active = 0, pending = 0, done = 0, problem = 0;
+    for (const p of projects) {
+      for (const sp of p.subProjects) {
+        total += sp.task_count;
+        active += sp.active_count;
+        pending += sp.pending_count;
+        done += sp.done_count;
+        problem += sp.problem_count;
+      }
+    }
+    return { total, active, pending, done, problem, today: todayTasks.length };
+  })();
+
+  const summaryItems = [
+    { label: 'Total', value: summary.total, color: 'text-foreground', bg: 'bg-foreground/5' },
+    { label: 'Active', value: summary.active, color: 'text-cyan-400', bg: 'bg-cyan-400/10' },
+    { label: 'Pending', value: summary.pending, color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
+    { label: 'Done', value: summary.done, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+    { label: 'Problem', value: summary.problem, color: 'text-red-400', bg: 'bg-red-400/10' },
+    { label: 'Today', value: summary.today, color: 'text-amber-400', bg: 'bg-amber-400/10' },
+  ];
+
   return (
     <div className="h-full overflow-y-auto p-8 w-full max-w-5xl mx-auto">
       <header className="flex items-center justify-between mb-6">
@@ -259,6 +283,36 @@ export default function DashboardPanel() {
           </button>
         </div>
       </header>
+
+      {/* 상태 요약 바 */}
+      {!loading && summary.total > 0 && (
+        <div className="mb-6">
+          <div className="grid grid-cols-6 gap-2">
+            {summaryItems.map(({ label, value, color, bg }) => (
+              <button
+                key={label}
+                onClick={() => {
+                  if (label === 'Today') handleTabChange('today');
+                  else if (label === 'Active') handleTabChange('active');
+                  else handleTabChange('all');
+                }}
+                className={`${bg} rounded-lg p-3 text-center transition-all hover:scale-[1.02] hover:brightness-110 cursor-pointer`}
+              >
+                <div className={`text-xl font-bold ${color}`}>{value}</div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{label}</div>
+              </button>
+            ))}
+          </div>
+          {summary.total > 0 && (
+            <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden flex">
+              {summary.done > 0 && <div className="bg-emerald-400 transition-all" style={{ width: `${(summary.done / summary.total) * 100}%` }} />}
+              {summary.active > 0 && <div className="bg-cyan-400 transition-all" style={{ width: `${(summary.active / summary.total) * 100}%` }} />}
+              {summary.pending > 0 && <div className="bg-indigo-400 transition-all" style={{ width: `${(summary.pending / summary.total) * 100}%` }} />}
+              {summary.problem > 0 && <div className="bg-red-400 transition-all" style={{ width: `${(summary.problem / summary.total) * 100}%` }} />}
+            </div>
+          )}
+        </div>
+      )}
 
       {memoOpen && (
         <div className="mb-6 bg-card rounded-lg border border-border overflow-hidden">
