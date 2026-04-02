@@ -72,7 +72,14 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({ path: resolved, entries: items });
-  } catch {
+  } catch (err: unknown) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === 'EACCES' || code === 'EPERM') {
+      return NextResponse.json({
+        error: '접근 권한이 없습니다',
+        permissionError: true,
+      }, { status: 403 });
+    }
     return NextResponse.json({ error: 'Cannot read directory' }, { status: 500 });
   }
 }

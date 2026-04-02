@@ -24,10 +24,12 @@ export default function DirectoryPicker({ onSelect, onCancel, initialPath }: Dir
   const [dirInfo, setDirInfo] = useState<DirInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [permissionError, setPermissionError] = useState(false);
 
   const loadDir = useCallback(async (dirPath?: string) => {
     setLoading(true);
     setError(null);
+    setPermissionError(false);
     try {
       const params = dirPath ? `?path=${encodeURIComponent(dirPath)}` : '';
       const res = await fetch(`/api/filesystem${params}`);
@@ -36,6 +38,7 @@ export default function DirectoryPicker({ onSelect, onCancel, initialPath }: Dir
       } else {
         const data = await res.json();
         setError(data.error || '불러오기 실패');
+        if (data.permissionError) setPermissionError(true);
       }
     } catch {
       setError('불러오기 실패');
@@ -78,7 +81,16 @@ export default function DirectoryPicker({ onSelect, onCancel, initialPath }: Dir
           {loading ? (
             <div className="p-8 text-center text-muted-foreground text-sm">불러오는 중...</div>
           ) : error ? (
-            <div className="p-8 text-center text-destructive text-sm">{error}</div>
+            <div className="p-6 text-center">
+              <div className="text-destructive text-sm mb-2">{error}</div>
+              {permissionError && (
+                <div className="text-xs text-muted-foreground leading-relaxed mt-3 text-left bg-muted rounded-md p-3">
+                  <p className="font-semibold mb-1">macOS 권한 설정이 필요합니다</p>
+                  <p>시스템 설정 → 개인정보 보호 및 보안 → 전체 디스크 접근 권한에서 터미널 앱을 추가해주세요.</p>
+                  <p className="mt-1 text-muted-foreground">Documents, Desktop 등 보호된 폴더는 별도 권한이 필요합니다.</p>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="py-1">
               {/* Parent directory */}

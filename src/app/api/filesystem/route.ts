@@ -43,7 +43,14 @@ export async function GET(request: NextRequest) {
       dirs,
       isProject: hasPackageJson || hasReadme || hasGit,
     });
-  } catch {
+  } catch (err: unknown) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === 'EACCES' || code === 'EPERM') {
+      return NextResponse.json({
+        error: '접근 권한이 없습니다',
+        permissionError: true,
+      }, { status: 403 });
+    }
     return NextResponse.json({ error: '디렉토리를 읽을 수 없습니다' }, { status: 500 });
   }
 }
