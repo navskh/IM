@@ -27,6 +27,8 @@ export default function DashboardPanel() {
 
   const [projects, setProjects] = useState<ProjectWithSubs[]>([]);
   const [todayTasks, setTodayTasks] = useState<(ITask & { projectName: string; subProjectName: string })[]>([]);
+  const [allTasks, setAllTasks] = useState<(ITask & { projectName: string; subProjectName: string })[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -67,22 +69,21 @@ export default function DashboardPanel() {
 
     setProjects(withSubs);
 
-    // Gather today tasks
-    const allToday: (ITask & { projectName: string; subProjectName: string })[] = [];
+    // Gather all tasks
+    const gathered: (ITask & { projectName: string; subProjectName: string })[] = [];
     for (const p of withSubs) {
       for (const sp of p.subProjects) {
         if (sp.task_count > 0) {
           const tasksRes = await fetch(`/api/projects/${p.id}/sub-projects/${sp.id}/tasks`);
           const tasks: ITask[] = await tasksRes.json();
           for (const t of tasks) {
-            if (t.is_today) {
-              allToday.push({ ...t, projectName: p.name, subProjectName: sp.name });
-            }
+            gathered.push({ ...t, projectName: p.name, subProjectName: sp.name });
           }
         }
       }
     }
-    setTodayTasks(allToday);
+    setAllTasks(gathered);
+    setTodayTasks(gathered.filter(t => t.is_today));
     setLoading(false);
   }, []);
 
@@ -238,13 +239,26 @@ export default function DashboardPanel() {
   })();
 
   const summaryItems = [
-    { label: 'Total', value: summary.total, color: 'text-foreground', bg: 'bg-foreground/5' },
-    { label: 'Active', value: summary.active, color: 'text-cyan-400', bg: 'bg-cyan-400/10' },
-    { label: 'Pending', value: summary.pending, color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
-    { label: 'Done', value: summary.done, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-    { label: 'Problem', value: summary.problem, color: 'text-red-400', bg: 'bg-red-400/10' },
-    { label: 'Today', value: summary.today, color: 'text-amber-400', bg: 'bg-amber-400/10' },
+    { label: 'Total', value: summary.total, color: 'text-foreground', bg: 'bg-foreground/5', filter: 'total' },
+    { label: 'Active', value: summary.active, color: 'text-cyan-400', bg: 'bg-cyan-400/10', filter: 'active' },
+    { label: 'Pending', value: summary.pending, color: 'text-indigo-400', bg: 'bg-indigo-400/10', filter: 'pending' },
+    { label: 'Done', value: summary.done, color: 'text-emerald-400', bg: 'bg-emerald-400/10', filter: 'done' },
+    { label: 'Problem', value: summary.problem, color: 'text-red-400', bg: 'bg-red-400/10', filter: 'problem' },
+    { label: 'Today', value: summary.today, color: 'text-amber-400', bg: 'bg-amber-400/10', filter: 'today' },
   ];
+
+  const STATUS_FILTERS: Record<string, (t: ITask) => boolean> = {
+    total: () => true,
+    active: (t) => t.status === 'submitted' || t.status === 'testing',
+    pending: (t) => t.status === 'idea' || t.status === 'writing',
+    done: (t) => t.status === 'done',
+    problem: (t) => t.status === 'problem',
+    today: (t) => t.is_today,
+  };
+
+  const filteredTasks = statusFilter
+    ? allTasks.filter(STATUS_FILTERS[statusFilter] || (() => true))
+    : [];
 
   return (
     <div className="h-full overflow-y-auto p-8 w-full max-w-5xl mx-auto">
@@ -288,15 +302,12 @@ export default function DashboardPanel() {
       {!loading && summary.total > 0 && (
         <div className="mb-6">
           <div className="grid grid-cols-6 gap-2">
-            {summaryItems.map(({ label, value, color, bg }) => (
+            {summaryItems.map(({ label, value, color, bg, filter }) => (
               <button
                 key={label}
-                onClick={() => {
-                  if (label === 'Today') handleTabChange('today');
-                  else if (label === 'Active') handleTabChange('active');
-                  else handleTabChange('all');
-                }}
-                className={`${bg} rounded-lg p-3 text-center transition-all hover:scale-[1.02] hover:brightness-110 cursor-pointer`}
+                onClick={() => setStatusFilter(statusFilter === filter ? null : filter)}
+                className={`${bg} rounded-lg p-3 text-center transition-all hover:scale-[1.02] hover:brightness-110 cursor-pointer
+                  ${statusFilter === filter ? 'ring-2 ring-offset-1 ring-offset-transparent ring-current scale-[1.02]' : ''}`}
               >
                 <div className={`text-xl font-bold ${color}`}>{value}</div>
                 <div className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{label}</div>
@@ -309,6 +320,30 @@ export default function DashboardPanel() {
               {summary.active > 0 && <div className="bg-cyan-400 transition-all" style={{ width: `${(summary.active / summary.total) * 100}%` }} />}
               {summary.pending > 0 && <div className="bg-indigo-400 transition-all" style={{ width: `${(summary.pending / summary.total) * 100}%` }} />}
               {summary.problem > 0 && <div className="bg-red-400 transition-all" style={{ width: `${(summary.problem / summary.total) * 100}%` }} />}
+            </div>
+          )}
+          {statusFilter && (
+            <div className="mt-3 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {summaryItems.find(s => s.filter === statusFilter)?.label} — {filteredTasks.length} tasks
+                </span>
+                <button onClick={() => setStatusFilter(null)}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors">Clear</button>
+              </div>
+              <div className="max-h-[280px] overflow-y-auto space-y-1">
+                {filteredTasks.map((task) => (
+                  <div key={task.id}
+                    onClick={() => openProject(task.project_id, task.projectName, task.sub_project_id, task.id)}
+                    className="flex items-center gap-3 px-3 py-2 bg-card hover:bg-card-hover border border-border rounded-lg cursor-pointer transition-colors">
+                    <span className="text-sm">{STATUS_ICONS[task.status]}</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-medium">{task.title}</span>
+                      <span className="text-xs text-muted-foreground ml-2">{task.projectName} / {task.subProjectName}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
