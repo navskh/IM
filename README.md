@@ -4,7 +4,9 @@
 
 > Turn free-form brainstorming into structured task trees with AI-generated prompts.
 
-A local-first task management tool for developers. Organize ideas into sub-projects and tasks, refine prompts for each task, and hand them off to AI agents. Built-in MCP Server enables autonomous AI agent execution. Cross-PC sync via Git.
+A local-first task management tool for developers. Organize ideas into workspaces and projects, refine prompts for each task, and hand them off to AI agents. Built-in MCP Server enables autonomous AI agent execution. Cross-PC sync via Git.
+
+![IM Workspace](docs/im-workspace-mockup.png)
 
 ## Quick Start
 
@@ -18,18 +20,18 @@ Opens a native-like app window (Chrome/Edge `--app` mode). First run builds auto
 ## Core Workflow
 
 ```
-Brainstorming → Sub-projects / Tasks → Prompts → AI Agent Execution
+Brainstorming → Projects / Tasks → Prompts → AI Agent Execution
 ```
 
 ### Hierarchy
 
 ```
-Project
-├── Sub-project A
+Workspace
+├── Project A
 │   ├── Task 1  →  Prompt
 │   ├── Task 2  →  Prompt
 │   └── Task 3  →  Prompt
-└── Sub-project B
+└── Project B
     ├── Task 4  →  Prompt
     └── Task 5  →  Prompt
 ```
