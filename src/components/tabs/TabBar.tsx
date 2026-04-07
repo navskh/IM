@@ -1,6 +1,7 @@
 'use client';
 
 import { useTabContext } from './TabContext';
+import ThemePicker from '@/components/theme/ThemePicker';
 
 export default function TabBar() {
   const { state, setActiveTab, closeTab } = useTabContext();
@@ -41,6 +42,8 @@ export default function TabBar() {
           </div>
         );
       })}
+      <div className="tab-bar-spacer" />
+      <ThemePicker />
     </div>
   );
 }

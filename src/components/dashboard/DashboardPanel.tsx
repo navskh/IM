@@ -48,17 +48,9 @@ export default function DashboardPanel() {
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
   const [syncRepoUrl, setSyncRepoUrl] = useState('');
-  const [memoOpen, setMemoOpen] = useState(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('im-memo-open') === 'true';
-    return false;
-  });
+  const [memoOpen, setMemoOpen] = useState(false);
   const memoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [tab, setTab] = useState<DashboardTab>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('im-dashboard-tab') as DashboardTab) || 'active';
-    }
-    return 'active';
-  });
+  const [tab, setTab] = useState<DashboardTab>('active');
 
   const fetchData = useCallback(async () => {
     const res = await fetch('/api/projects');
@@ -95,6 +87,11 @@ export default function DashboardPanel() {
   useEffect(() => {
     fetchData();
     fetch('/api/global-memo').then(r => r.json()).then(d => setMemoContent(d.content || ''));
+    // Restore localStorage state after mount
+    const savedMemo = localStorage.getItem('im-memo-open');
+    if (savedMemo === 'true') setMemoOpen(true);
+    const savedTab = localStorage.getItem('im-dashboard-tab') as DashboardTab | null;
+    if (savedTab) setTab(savedTab);
   }, [fetchData]);
 
   const handleMemoChange = (value: string) => {
