@@ -285,18 +285,32 @@ const mdHighlight = HighlightStyle.define([
 // ─────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────
+// Extract the current bullet/checkbox line text suitable for promoting to a task.
+// Returns the "content" portion (without the `- [ ]` marker) and the line range.
+export function getPromotableLine(view: EditorView): { content: string; from: number; to: number } | null {
+  const state = view.state;
+  const pos = state.selection.main.head;
+  const line = state.doc.lineAt(pos);
+  const m = line.text.match(/^(\s*)([-*+])\s(?:\[[ xX]\]\s)?(.*)$/);
+  if (!m) return null;
+  const content = m[3]?.trim();
+  if (!content) return null;
+  return { content, from: line.from, to: line.to };
+}
+
 export interface NoteEditorProps {
   value: string;
   onChange: (v: string) => void;
   onBlur?: () => void;
   onOpenCommand?: () => void;
+  onPromoteLine?: () => void;
   placeholder?: string;
   /** Extra text blobs (sibling tasks, brainstorm, …) to widen the autocomplete corpus. */
   extraCorpus?: string[];
 }
 
 const NoteEditor = forwardRef<ReactCodeMirrorRef, NoteEditorProps>(function NoteEditor(
-  { value, onChange, onBlur, onOpenCommand, placeholder, extraCorpus },
+  { value, onChange, onBlur, onOpenCommand, onPromoteLine, placeholder, extraCorpus },
   ref,
 ) {
   // Mutable ref keeps the plugin in sync with the latest corpus without
@@ -315,6 +329,7 @@ const NoteEditor = forwardRef<ReactCodeMirrorRef, NoteEditorProps>(function Note
       { key: 'Escape', run: dismissGhost },
       { key: 'Enter', run: continueList },
       { key: 'Mod-k', run: () => { onOpenCommand?.(); return true; } },
+      { key: 'Mod-Shift-t', run: () => { onPromoteLine?.(); return true; } },
     ])),
     EditorView.lineWrapping,
     EditorView.theme({

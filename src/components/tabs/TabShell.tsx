@@ -4,6 +4,8 @@ import { useTabContext } from './TabContext';
 import TabBar from './TabBar';
 import DashboardPanel from '@/components/dashboard/DashboardPanel';
 import WorkspacePanel from '@/components/workspace/WorkspacePanel';
+import GlobalSearch from '@/components/search/GlobalSearch';
+import QuickCapture from '@/components/search/QuickCapture';
 
 export default function TabShell() {
   const { state } = useTabContext();
@@ -11,6 +13,8 @@ export default function TabShell() {
   return (
     <div className="h-screen flex flex-col">
       <TabBar />
+      <GlobalSearch />
+      <QuickCapture />
       <div className="flex-1 min-h-0 relative">
         {state.tabs.map((tab) => (
           <div

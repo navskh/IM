@@ -536,6 +536,7 @@ export default function WorkspacePanel({
             <TaskDetail task={selectedTask} projectId={id} subProjectId={selectedSubId!}
               siblingTasks={tasks}
               onUpdate={handleTaskUpdate} onDelete={handleTaskDelete}
+              onTaskPromoted={(newTask) => setTasks(prev => [...prev, newTask])}
               onChatStateChange={(taskId, state) => {
                 setChatStates(prev => ({ ...prev, [taskId]: state }));
               }} />

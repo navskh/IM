@@ -19,6 +19,28 @@ const COMMANDS: { key: RefineCommand; label: string; hint: string }[] = [
   { key: 'custom',       label: '직접 입력…',           hint: '임의 명령을 프롬프트로 전달' },
 ];
 
+const HISTORY_KEY = 'im-refine-custom-history';
+const HISTORY_MAX = 8;
+
+function loadHistory(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.filter((v): v is string => typeof v === 'string') : [];
+  } catch { return []; }
+}
+
+function pushHistory(entry: string) {
+  if (typeof window === 'undefined') return;
+  const trimmed = entry.trim();
+  if (!trimmed) return;
+  const prev = loadHistory().filter(x => x !== trimmed);
+  const next = [trimmed, ...prev].slice(0, HISTORY_MAX);
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(next)); } catch { /* quota */ }
+}
+
 export default function CommandPalette({
   open,
   hasSelection,
@@ -33,6 +55,7 @@ export default function CommandPalette({
   const [idx, setIdx] = useState(0);
   const [customMode, setCustomMode] = useState(false);
   const [custom, setCustom] = useState('');
+  const [history, setHistory] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -44,7 +67,10 @@ export default function CommandPalette({
   }, [open]);
 
   useEffect(() => {
-    if (customMode) inputRef.current?.focus();
+    if (customMode) {
+      inputRef.current?.focus();
+      setHistory(loadHistory());
+    }
   }, [customMode]);
 
   if (!open) return null;
@@ -61,6 +87,7 @@ export default function CommandPalette({
   const submitCustom = () => {
     const t = custom.trim();
     if (!t) return;
+    pushHistory(t);
     onRun('custom', t);
   };
 
@@ -114,11 +141,30 @@ export default function CommandPalette({
               onChange={(e) => setCustom(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') submitCustom();
-                if (e.key === 'Escape') onClose();
+                if (e.key === 'Escape') { e.preventDefault(); setCustomMode(false); }
               }}
               placeholder="예: 이 부분 markdown 표로 만들어줘"
               className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm focus:border-primary focus:outline-none"
             />
+            {history.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70">최근 명령</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {history.map((h) => (
+                    <button
+                      key={h}
+                      onClick={() => setCustom(h)}
+                      title={h}
+                      className="text-xs px-2 py-1 rounded border border-border text-muted-foreground
+                                 hover:text-foreground hover:border-muted-foreground transition-colors
+                                 max-w-[220px] truncate text-left"
+                    >
+                      {h}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="flex justify-end gap-2">
               <button onClick={() => setCustomMode(false)} className="text-xs text-muted-foreground px-2 py-1">뒤로</button>
               <button

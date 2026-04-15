@@ -149,27 +149,38 @@ export default function TaskChat({
             노트 작성을 도와드립니다. 질문하거나 &quot;이 부분 정리해줘&quot; 같이 요청해보세요
           </div>
         )}
-        {messages.filter(msg => msg.content).map((msg) => (
-          <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-            <div className={`max-w-[90%] px-3 py-2 rounded-lg text-sm leading-relaxed ${
-              msg.role === 'user'
-                ? 'bg-accent text-white rounded-br-sm whitespace-pre-wrap'
-                : 'bg-muted text-foreground rounded-bl-sm chat-markdown'
-            }`}>
-              {msg.role === 'assistant'
-                ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-                : msg.content}
+        {messages.filter(msg => msg.content).map((msg) => {
+          const isProgress = msg.role === 'assistant' && msg.content.startsWith('[진행 중]');
+          return (
+            <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+              {isProgress && (
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-warning mb-0.5 pl-1">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
+                  Watch 실행 중 · 실시간 출력
+                </div>
+              )}
+              <div className={`max-w-[90%] px-3 py-2 rounded-lg text-sm leading-relaxed ${
+                msg.role === 'user'
+                  ? 'bg-accent text-white rounded-br-sm whitespace-pre-wrap'
+                  : isProgress
+                    ? 'bg-warning/10 text-foreground rounded-bl-sm chat-markdown border border-warning/30'
+                    : 'bg-muted text-foreground rounded-bl-sm chat-markdown'
+              }`}>
+                {msg.role === 'assistant'
+                  ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                  : msg.content}
+              </div>
+              {msg.role === 'assistant' && !isProgress && (
+                <button
+                  onClick={() => onInsertToNote(msg.content)}
+                  className="text-xs text-muted-foreground hover:text-primary mt-0.5 px-1 transition-colors"
+                >
+                  ↓ 노트에 삽입
+                </button>
+              )}
             </div>
-            {msg.role === 'assistant' && (
-              <button
-                onClick={() => onInsertToNote(msg.content)}
-                className="text-xs text-muted-foreground hover:text-primary mt-0.5 px-1 transition-colors"
-              >
-                ↓ 노트에 삽입
-              </button>
-            )}
-          </div>
-        ))}
+          );
+        })}
         {loading && (
           <div className="flex gap-1 px-2 py-2">
             <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: '0ms' }} />

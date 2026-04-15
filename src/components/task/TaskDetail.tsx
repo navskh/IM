@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { ITask, TaskStatus, ItemPriority } from '@/types';
 import StatusFlow from './StatusFlow';
 import TaskChat from './TaskChat';
-import NoteEditor from './NoteEditor';
+import NoteEditor, { getPromotableLine } from './NoteEditor';
 import CommandPalette, { type RefineCommand } from './CommandPalette';
 import type { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 
@@ -15,6 +15,7 @@ export default function TaskDetail({
   siblingTasks,
   onUpdate,
   onDelete,
+  onTaskPromoted,
   onChatStateChange,
 }: {
   task: ITask;
@@ -24,6 +25,8 @@ export default function TaskDetail({
   siblingTasks?: ITask[];
   onUpdate: (data: Partial<ITask>) => void;
   onDelete: () => void;
+  /** Fired after a checkbox line is promoted to a new task. Parent should refresh its task list. */
+  onTaskPromoted?: (newTask: ITask) => void;
   onChatStateChange?: (taskId: string, state: 'idle' | 'loading' | 'done') => void;
 }) {
   const [title, setTitle] = useState(task.title);
@@ -31,6 +34,16 @@ export default function TaskDetail({
   const [editingTitle, setEditingTitle] = useState(false);
   const [copied, setCopied] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const chatWasManuallyToggled = useRef(false);
+
+  // Auto-open the chat panel while the task is being executed by the watcher —
+  // that's where streaming progress shows up. Don't override a manual toggle
+  // the user made in this session.
+  useEffect(() => {
+    if (task.status === 'testing' && !chatOpen && !chatWasManuallyToggled.current) {
+      setChatOpen(true);
+    }
+  }, [task.status, chatOpen]);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [refining, setRefining] = useState(false);
   const [refineElapsed, setRefineElapsed] = useState(0);
@@ -230,6 +243,46 @@ export default function TaskDetail({
     setUndoSnapshot(null);
   }, [undoSnapshot, task.id, onUpdate]);
 
+  const [promoteNotice, setPromoteNotice] = useState<string | null>(null);
+
+  const promoteCheckbox = useCallback(async () => {
+    const view = editorRef.current?.view;
+    if (!view) return;
+    const line = getPromotableLine(view);
+    if (!line) {
+      setRefineError('체크박스나 불릿 목록 줄에 커서를 두고 실행하세요');
+      setTimeout(() => setRefineError(null), 3000);
+      return;
+    }
+    const titleText = line.content.slice(0, 200);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/sub-projects/${subProjectId}/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: titleText }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const newTask = await res.json() as ITask;
+
+      // Remove the promoted line from the note (and a trailing newline, if any).
+      const doc = view.state.doc.toString();
+      const before = doc.slice(0, line.from);
+      const afterRaw = doc.slice(line.to);
+      const trimmed = afterRaw.startsWith('\n') ? afterRaw.slice(1) : afterRaw;
+      const nextDoc = before + trimmed;
+      setDescription(nextDoc);
+      onUpdate({ description: nextDoc });
+      onTaskPromoted?.(newTask);
+
+      setPromoteNotice(`→ 태스크 "${titleText}" 생성됨`);
+      setTimeout(() => setPromoteNotice(null), 3000);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '태스크 생성 실패';
+      setRefineError(msg);
+      setTimeout(() => setRefineError(null), 4000);
+    }
+  }, [projectId, subProjectId, onUpdate, onTaskPromoted]);
+
   const priorities: ItemPriority[] = ['high', 'medium', 'low'];
 
   return (
@@ -302,7 +355,7 @@ export default function TaskDetail({
             {copied ? '✓ Copied' : 'Copy as Prompt'}
           </button>
           <button
-            onClick={() => setChatOpen(v => !v)}
+            onClick={() => { chatWasManuallyToggled.current = true; setChatOpen(v => !v); }}
             className={`text-xs px-2 py-0.5 rounded transition-colors border ${
               chatOpen
                 ? 'bg-accent/15 text-accent border-accent/30'
@@ -336,6 +389,7 @@ export default function TaskDetail({
             onChange={setDescription}
             onBlur={saveDescription}
             onOpenCommand={openPalette}
+            onPromoteLine={promoteCheckbox}
             extraCorpus={extraCorpus}
             placeholder="자유롭게 작성하세요. 배경 · 목표 · 관련 파일 · 결정사항 · 질문 · 링크 등 뭐든..."
           />
@@ -351,6 +405,12 @@ export default function TaskDetail({
             >
               취소
             </button>
+          </div>
+        )}
+        {promoteNotice && (
+          <div className="absolute bottom-2 right-3 text-xs px-3 py-1.5 rounded bg-success/15 text-success flex items-center gap-2 shadow-lg border border-success/30">
+            <span>✓</span>
+            <span className="truncate max-w-[50ch]">{promoteNotice}</span>
           </div>
         )}
         {!refining && undoSnapshot && undoSnapshot.taskId === task.id && (
