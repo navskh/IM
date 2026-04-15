@@ -39,9 +39,11 @@ Workspace
 ### Task Status Flow
 
 ```
-💡 Idea → ✏️ Writing → 🚀 Submitted → 🧪 Testing → ✅ Done
-                                                      🔴 Problem
+💡 Idea → 🔥 Doing → ✅ Done
+                      🔴 Problem
 ```
+
+Legacy statuses (`Writing`, `Submitted`, `Testing`) remain available and are shown as a dashed badge on pre-v1.6 tasks.
 
 ## CLI Commands
 
@@ -130,6 +132,19 @@ im watch --project <id>           # Specific project
 im watch --interval 30 --dry-run  # Preview mode
 ```
 
+### Note-Centric Editor (v1.6)
+
+The task detail replaces the old separate "description + prompt" pair with a single rich Markdown note.
+
+- **CodeMirror Editor** — Markdown syntax highlighting with distinct styling for headings, list markers (`-`, `1.`), code, links, and quotes. GFM enabled (task checkboxes, strikethrough, tables).
+- **⌘K AI Command Palette** — Refine the selection or continue at cursor without leaving the note:
+  - 이어서 써줘 (continue) · 이 부분 정리해줘 (tidy) · 할 일로 쪼개줘 (split into tasks) · 질문으로 바꿔줘 (to questions) · 요약해줘 (summarize) · Custom prompt
+  - Result is inserted inline. **Cancel** mid-run; **Undo** within 30s of applying.
+  - Runs on Sonnet without project context for ~7s typical latency.
+- **Context-Aware Autocomplete** — Ghost text suggests multi-word phrases (up to 3 tokens). Corpus pulls from the current note, sibling tasks in the same project, and the project's brainstorm. Phrases sharing vocabulary with the current note are boosted, so related terms surface first. `Tab` accepts, `Esc` dismisses.
+- **List Auto-Continue** — Enter continues bullets/numbers/checkboxes; Enter on an empty item exits the list.
+- **Copy as Prompt** — One-click copy of the whole note formatted for pasting into Claude Code / another agent.
+
 ### Workspace
 
 - **3-Panel Layout** — Brainstorming | Project Tree | Task Detail (drag to resize)
@@ -137,12 +152,11 @@ im watch --interval 30 --dry-run  # Preview mode
 - **File Tree Drawer** — Browse linked project directories
 - **Brainstorming Panel** — Free-form notes with inline AI memos
 - **Auto Distribute** — AI analyzes brainstorming and distributes tasks to sub-projects with preview/edit modal
-- **Prompt Editor** — Write/edit/copy prompts per task
-- **AI Chat** — Per-task conversations to refine work, with loading/done indicators in project tree
+- **Note Assistant** — Per-task AI chat (formerly "AI Chat") for refining the note, with one-click insert into the note
 - **Quick Memo** — Global scratchpad on dashboard for free-form notes (auto-saved)
 - **Morning Notifications** — Daily macOS notification at 9 AM with today's tasks summary
-- **Dashboard** — Active / All / Today views
-- **Keyboard Shortcuts** — `B` brainstorm, `N` sub-project, `T` task, `Cmd+1~6` status
+- **Dashboard** — Active / All / Today / Archive views
+- **Keyboard Shortcuts** — `B` brainstorm, `N` project, `T` task, `⌘K` AI command palette, `⌘1/2/3/4` status (Idea/Doing/Done/Problem)
 
 ### Data
 
@@ -189,6 +203,17 @@ netstat -ano | findstr :3456          # Windows (then taskkill /PID <pid> /F)
 ```
 
 ## Changelog
+
+### v1.6.0
+
+- **⌘K AI Command Palette** — Inline refine/continue/summarize/split commands, result inserted at cursor. Cancel + 30s Undo. Runs on Sonnet with lean context (~7s vs 90s previously).
+- **CodeMirror Note Editor** — Replaces textarea with a full Markdown editor: syntax highlighting, GFM task lists / strikethrough / tables, list auto-continue, ghost-text autocomplete.
+- **Context-Aware Autocomplete** — Multi-word phrase suggestions drawn from the current note + sibling tasks + brainstorm. Shared-vocabulary boost surfaces topically related completions first.
+- **`doing` status** — Simplified default flow (Idea → Doing → Done). Legacy statuses preserved with a dashed badge.
+- **Task archive & tags** — `is_archived` and `tags` columns with Archive dashboard tab.
+- **Legacy prompt merge** — Existing `task_prompts` are one-time merged into the note description with a `<!-- legacy-prompt -->` marker.
+- **Note Assistant** — Per-task AI chat repositioned around note refinement, with one-click insert.
+- Runtime: `RunAgentOptions.model` override, CodeMirror-aware global-shortcut filter.
 
 ### v1.3.0
 
