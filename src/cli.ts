@@ -10,6 +10,7 @@ import { getTaskPrompt } from './lib/db/queries/task-prompts';
 import type { McpToolContext } from './lib/mcp/tools';
 import { startWatcher } from './lib/watcher';
 import { syncInit, syncPush, syncPull, syncStatus } from './lib/sync/index';
+import { maybeAutoUpdate, respawnSelf } from './lib/auto-update';
 import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -117,6 +118,15 @@ program
   .action(async (opts) => {
     const port = opts.port;
     const fs = await import('fs');
+
+    // Auto-update on boot — fetches npm latest, installs if newer, respawns.
+    // Only runs for `im start`; `im mcp` / `im watch` stay untouched because
+    // they may be long-running integrations we shouldn't disrupt.
+    const upd = await maybeAutoUpdate(PKG_ROOT);
+    if (upd.upgraded) {
+      respawnSelf();
+      return;
+    }
 
     // Resolve next CLI
     let nextCli: string;
