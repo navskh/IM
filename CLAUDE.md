@@ -73,7 +73,7 @@ Brainstorming text → AI structuring (Claude Agent SDK) → Item tree in SQLite
 - **`@anthropic-ai/claude-agent-sdk`** (not direct Anthropic API) — Uses the user's Claude subscription, no separate API key needed. Requires `ANTHROPIC_API_KEY` env var.
 - **Full replace on structure** — Each AI structuring pass replaces all items for the project (not incremental merge). User-edited prompts (type `manual`) are preserved.
 - **Path alias** `@/*` maps to `./src/*` (tsconfig paths)
-- **Standalone output** — `next.config.ts` sets `output: 'standalone'` with `better-sqlite3` as server external package
+- **SQLite via sql.js (wasm)** — `next.config.mjs` has `serverExternalPackages: ['sql.js']` so the package isn't bundled; sql.js resolves its `.wasm` asset relative to its own `__dirname`. `src/lib/db/index.ts` wraps sql.js's async API in a synchronous better-sqlite3-compatible shim (`prepare().all/get/run`, `transaction`, `pragma`, `exec`). Writes mark `dirty` and `fs.writeFileSync` exports the whole DB to `~/.idea-manager/data/im.db`.
 - **Data directory** — All data stored in `~/.idea-manager/data/`
 
 ## Type Conventions

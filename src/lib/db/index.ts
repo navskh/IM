@@ -143,7 +143,10 @@ async function initAsync(): Promise<DatabaseWrapper> {
   if (wrapper) return wrapper;
 
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const initSqlJs = require('sql.js/dist/sql-asm.js');
+  const initSqlJs = require('sql.js/dist/sql-wasm.js');
+  // In Node, sql.js resolves the .wasm file relative to its own __dirname
+  // (node_modules/sql.js/dist). `serverExternalPackages: ['sql.js']` keeps
+  // the package unbundled so that resolution works.
   const SQL = await initSqlJs();
 
   const dbPath = getDbPath();
