@@ -2,6 +2,7 @@
 
 import { useTabContext } from './TabContext';
 import ThemePicker from '@/components/theme/ThemePicker';
+import UpdateButton from '@/components/update/UpdateButton';
 
 export default function TabBar() {
   const { state, setActiveTab, closeTab } = useTabContext();
@@ -43,6 +44,7 @@ export default function TabBar() {
         );
       })}
       <div className="tab-bar-spacer" />
+      <UpdateButton />
       <ThemePicker />
     </div>
   );
