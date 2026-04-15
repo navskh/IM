@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTaskConversations, addTaskConversation } from '@/lib/db/queries/task-conversations';
 import { getTask } from '@/lib/db/queries/tasks';
-import { getTaskPrompt } from '@/lib/db/queries/task-prompts';
 import { getBrainstorm } from '@/lib/db/queries/brainstorms';
 import { getProject } from '@/lib/db/queries/projects';
 import { runAgent } from '@/lib/ai/client';
@@ -39,18 +38,23 @@ export async function POST(
 
   // Build context for AI
   const history = getTaskConversations(taskId);
-  const prompt = getTaskPrompt(taskId);
   const brainstorm = getBrainstorm(projectId);
   const project = getProject(projectId);
 
   const aiPolicy = project?.ai_context ? `\n\nProject AI Policy:\n${project.ai_context}` : '';
 
-  const systemPrompt = `You are a helpful assistant helping refine a development task. Respond in Korean. Be concise.
+  const systemPrompt = `당신은 사용자가 자기 태스크 "노트"를 다듬는 것을 돕는 보조자입니다.
+사용자는 터미널 Claude Code에서 실제 작업을 수행하며, IM에서는 태스크의 맥락·배경·결정사항·질문 등을 자유롭게 메모합니다.
+당신의 역할:
+  - 사용자가 질문하면 간결하게 답한다 (긴 설교 금지)
+  - 사용자가 "이 부분 정리해줘" 같은 요청을 하면 노트에 바로 삽입 가능한 형태(마크다운)로 답한다
+  - 공식 프롬프트를 만들려 하지 말 것. 사용자의 생각을 **정리·명확화**하는 역할만
+응답은 한국어로.
 ${aiPolicy}
 Task: ${task.title}
-Description: ${task.description}
+Note(현재):
+${task.description || '(비어있음)'}
 Status: ${task.status}
-${prompt?.content ? `Current prompt:\n${prompt.content}` : ''}
 ${brainstorm?.content ? `\nBrainstorming context:\n${brainstorm.content.slice(0, 3000)}` : ''}`;
 
   const conversationText = history

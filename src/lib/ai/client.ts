@@ -8,6 +8,8 @@ export type OnRawEvent = (event: Record<string, unknown>) => void;
 export interface RunAgentOptions {
   cwd?: string;
   timeoutMs?: number;
+  /** Optional model override (e.g. "sonnet" for faster light tasks). */
+  model?: string;
 }
 
 /**
@@ -28,7 +30,7 @@ export function runAgent(
 
   return new Promise((resolve, reject) => {
     const useStreamJson = !!(onText || onRawEvent);
-    const args = config.buildArgs({ streaming: useStreamJson });
+    const args = config.buildArgs({ streaming: useStreamJson, model: options?.model });
     const env = config.buildEnv();
 
     const proc = spawn(config.binary, args, {

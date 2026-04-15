@@ -4,6 +4,7 @@ import type { ISubProjectWithStats, TaskStatus } from '@/types';
 
 const STATUS_ICONS: Record<TaskStatus, string> = {
   idea: '\u{1F4A1}',
+  doing: '\u{1F525}',
   writing: '\u{270F}\u{FE0F}',
   submitted: '\u{1F680}',
   testing: '\u{1F9EA}',

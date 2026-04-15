@@ -22,7 +22,9 @@ export interface IBrainstorm {
 }
 
 export type ItemPriority = 'high' | 'medium' | 'low';
-export type TaskStatus = 'idea' | 'writing' | 'submitted' | 'testing' | 'done' | 'problem';
+export type TaskStatus = 'idea' | 'doing' | 'writing' | 'submitted' | 'testing' | 'done' | 'problem';
+export const ACTIVE_STATUSES: TaskStatus[] = ['idea', 'doing', 'done', 'problem'];
+export const LEGACY_STATUSES: TaskStatus[] = ['writing', 'submitted', 'testing'];
 
 export interface ISubProject {
   id: string;

@@ -57,7 +57,7 @@ export function getTodayTasks(projectId: string): ITask[] {
 export function getActiveTasks(projectId: string): ITask[] {
   const db = getDb();
   const rows = db.prepare(
-    "SELECT * FROM tasks WHERE project_id = ? AND status IN ('submitted','testing') AND is_archived = 0 ORDER BY sort_order ASC"
+    "SELECT * FROM tasks WHERE project_id = ? AND status IN ('doing','submitted','testing') AND is_archived = 0 ORDER BY sort_order ASC"
   ).all(projectId) as TaskRow[];
   return rows.map(rowToTask);
 }

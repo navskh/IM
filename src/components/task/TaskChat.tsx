@@ -22,12 +22,12 @@ function notifyAiResponse(preview: string) {
 export default function TaskChat({
   basePath,
   taskStatus,
-  onApplyToPrompt,
+  onInsertToNote,
   onChatStateChange,
 }: {
   basePath: string;
   taskStatus?: TaskStatus;
-  onApplyToPrompt: (content: string) => void;
+  onInsertToNote: (content: string) => void;
   onChatStateChange?: (state: 'idle' | 'loading' | 'done') => void;
 }) {
   const [messages, setMessages] = useState<ITaskConversation[]>([]);
@@ -131,9 +131,9 @@ export default function TaskChat({
   };
 
   return (
-    <div className="flex flex-col h-full border-t border-border">
+    <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-border">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">AI Chat</span>
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Note Assistant</span>
         {taskStatus === 'testing' && (
           <span className="flex items-center gap-1.5 text-xs text-warning">
             <span className="inline-block w-2 h-2 rounded-full bg-warning animate-pulse" />
@@ -146,7 +146,7 @@ export default function TaskChat({
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2 min-h-0">
         {messages.length === 0 && !loading && (
           <div className="text-sm text-muted-foreground text-center py-4">
-            Ask AI to help refine your task or prompt
+            노트 작성을 도와드립니다. 질문하거나 &quot;이 부분 정리해줘&quot; 같이 요청해보세요
           </div>
         )}
         {messages.filter(msg => msg.content).map((msg) => (
@@ -162,10 +162,10 @@ export default function TaskChat({
             </div>
             {msg.role === 'assistant' && (
               <button
-                onClick={() => onApplyToPrompt(msg.content)}
+                onClick={() => onInsertToNote(msg.content)}
                 className="text-xs text-muted-foreground hover:text-primary mt-0.5 px-1 transition-colors"
               >
-                Apply to prompt
+                ↓ 노트에 삽입
               </button>
             )}
           </div>

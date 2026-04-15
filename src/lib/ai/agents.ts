@@ -3,7 +3,7 @@ import type { AgentType } from '../../types';
 export interface AgentConfig {
   name: string;
   binary: string;
-  buildArgs: (opts: { streaming: boolean }) => string[];
+  buildArgs: (opts: { streaming: boolean; model?: string }) => string[];
   buildEnv: () => NodeJS.ProcessEnv;
   parseStreamEvent: (parsed: Record<string, unknown>) => { text?: string; final?: string } | null;
   cleanOutput?: (text: string) => string;
@@ -12,9 +12,9 @@ export interface AgentConfig {
 const claudeConfig: AgentConfig = {
   name: 'Claude',
   binary: 'claude',
-  buildArgs: ({ streaming }) => [
+  buildArgs: ({ streaming, model }) => [
     '--dangerously-skip-permissions',
-    '--model', 'opus',
+    '--model', model || 'opus',
     ...(streaming
       ? ['--output-format', 'stream-json', '--verbose']
       : ['--output-format', 'text']),

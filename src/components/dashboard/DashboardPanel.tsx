@@ -276,7 +276,7 @@ export default function DashboardPanel() {
 
   const STATUS_FILTERS: Record<string, (t: ITask) => boolean> = {
     total: () => true,
-    active: (t) => t.status === 'submitted' || t.status === 'testing',
+    active: (t) => t.status === 'doing' || t.status === 'submitted' || t.status === 'testing',
     pending: (t) => t.status === 'idea' || t.status === 'writing',
     done: (t) => t.status === 'done',
     problem: (t) => t.status === 'problem',

@@ -125,7 +125,7 @@ export default function TaskList({
 }
 
 function getNextStatus(current: TaskStatus): TaskStatus {
-  const flow: TaskStatus[] = ['idea', 'writing', 'submitted', 'testing', 'done'];
+  const flow: TaskStatus[] = ['idea', 'doing', 'done'];
   const idx = flow.indexOf(current);
   if (idx === -1) return 'idea';
   return flow[(idx + 1) % flow.length];

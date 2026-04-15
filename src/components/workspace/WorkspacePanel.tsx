@@ -336,7 +336,12 @@ export default function WorkspacePanel({
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (!isActive) return;
-      const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+      const target = e.target as HTMLElement | null;
+      const isInput =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        (target?.isContentEditable ?? false) ||
+        !!target?.closest?.('.cm-editor');
 
       if (!isInput && e.code === 'KeyB' && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
@@ -356,8 +361,7 @@ export default function WorkspacePanel({
       }
       if (selectedTaskId && selectedSubId && !isInput) {
         const statusMap: Record<string, TaskStatus> = {
-          'Digit1': 'idea', 'Digit2': 'writing', 'Digit3': 'submitted',
-          'Digit4': 'testing', 'Digit5': 'done', 'Digit6': 'problem',
+          'Digit1': 'idea', 'Digit2': 'doing', 'Digit3': 'done', 'Digit4': 'problem',
         };
         if ((e.metaKey || e.ctrlKey) && statusMap[e.code]) {
           e.preventDefault();
@@ -530,6 +534,7 @@ export default function WorkspacePanel({
         <div className="flex-1 min-w-0">
           {selectedTask ? (
             <TaskDetail task={selectedTask} projectId={id} subProjectId={selectedSubId!}
+              siblingTasks={tasks}
               onUpdate={handleTaskUpdate} onDelete={handleTaskDelete}
               onChatStateChange={(taskId, state) => {
                 setChatStates(prev => ({ ...prev, [taskId]: state }));
