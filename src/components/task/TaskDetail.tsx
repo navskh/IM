@@ -536,6 +536,7 @@ export default function TaskDetail({
             onBlur={saveDescription}
             onOpenCommand={openPalette}
             onPromoteLine={promoteCheckbox}
+            onFocusMode={() => setFocusMode(true)}
             extraCorpus={extraCorpus}
             placeholder="자유롭게 작성하세요. 배경 · 목표 · 관련 파일 · 결정사항 · 질문 · 링크 등 뭐든..."
           />

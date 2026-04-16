@@ -17,7 +17,6 @@ const SECTIONS: { title: string; shortcuts: { keys: string; desc: string }[] }[]
     title: '워크스페이스',
     shortcuts: [
       { keys: '⌘L', desc: 'Project Advisor 열기/닫기' },
-      { keys: 'F', desc: '포커스 모드 (노트 풀스크린)' },
       { keys: 'B', desc: '브레인스토밍 패널 토글' },
       { keys: 'N', desc: '새 프로젝트 추가' },
       { keys: 'T', desc: '새 태스크 추가' },
@@ -32,6 +31,7 @@ const SECTIONS: { title: string; shortcuts: { keys: string; desc: string }[] }[]
     shortcuts: [
       { keys: '⌘K', desc: 'AI 명령 팔레트' },
       { keys: '⌘⇧T', desc: '체크박스/불릿 → 태스크 승격' },
+      { keys: '⌘⇧F', desc: '포커스 모드 (노트 풀스크린)' },
       { keys: '/', desc: '슬래시 명령 (/todo, /table, /code…)' },
       { keys: '⌘↵', desc: '체크박스 토글 [ ] ↔ [x]' },
       { keys: '⌘⇧↵', desc: '테이블 행 추가' },

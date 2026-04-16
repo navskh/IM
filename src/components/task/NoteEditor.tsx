@@ -433,13 +433,14 @@ export interface NoteEditorProps {
   onBlur?: () => void;
   onOpenCommand?: () => void;
   onPromoteLine?: () => void;
+  onFocusMode?: () => void;
   placeholder?: string;
   /** Extra text blobs (sibling tasks, brainstorm, …) to widen the autocomplete corpus. */
   extraCorpus?: string[];
 }
 
 const NoteEditor = forwardRef<ReactCodeMirrorRef, NoteEditorProps>(function NoteEditor(
-  { value, onChange, onBlur, onOpenCommand, onPromoteLine, placeholder, extraCorpus },
+  { value, onChange, onBlur, onOpenCommand, onPromoteLine, onFocusMode, placeholder, extraCorpus },
   ref,
 ) {
   // Mutable ref keeps the plugin in sync with the latest corpus without
@@ -472,6 +473,7 @@ const NoteEditor = forwardRef<ReactCodeMirrorRef, NoteEditorProps>(function Note
       { key: 'Mod-Shift-Backspace', run: tableDeleteRow },
       { key: 'Mod-k', run: () => { onOpenCommand?.(); return true; } },
       { key: 'Mod-Shift-t', run: () => { onPromoteLine?.(); return true; } },
+      { key: 'Mod-Shift-f', run: () => { onFocusMode?.(); return true; } },
     ])),
     EditorView.lineWrapping,
     EditorView.theme({

@@ -397,11 +397,6 @@ export default function WorkspacePanel({
         addBtn?.click();
         return;
       }
-      if (!isInput && e.code === 'KeyF' && !e.metaKey && !e.ctrlKey && selectedTaskId) {
-        e.preventDefault();
-        setFocusMode(true);
-        return;
-      }
       // ⌘L — toggle project advisor (works even from input/editor)
       if ((e.metaKey || e.ctrlKey) && e.code === 'KeyL') {
         e.preventDefault();
