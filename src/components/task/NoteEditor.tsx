@@ -3,11 +3,71 @@
 import { forwardRef, useMemo, useRef } from 'react';
 import CodeMirror, { type ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
-import { EditorView, Decoration, keymap, ViewPlugin, WidgetType } from '@codemirror/view';
-import { EditorState, StateEffect, StateField, Prec } from '@codemirror/state';
+import { EditorView, Decoration, keymap, ViewPlugin, WidgetType, type DecorationSet } from '@codemirror/view';
+import { EditorState, StateEffect, StateField, Prec, RangeSetBuilder } from '@codemirror/state';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import { autocompletion, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete';
 import { tags as t } from '@lezer/highlight';
+
+// ─────────────────────────────────────────────────────────────
+// Arrow ligatures: visually replace -> => <- etc. with unicode
+// arrows. The actual document text is unchanged.
+// ─────────────────────────────────────────────────────────────
+const LIGATURES: [RegExp, string][] = [
+  [/<-->/g, '⟷'],
+  [/<=>/g, '⇔'],
+  [/-->/g, '⟶'],
+  [/<--/g, '⟵'],
+  [/==>/g, '⟹'],
+  [/<==/g, '⟸'],
+  [/<->/g, '↔'],
+  [/=>/g, '⇒'],
+  [/->/g, '→'],
+  [/<-/g, '←'],
+];
+
+class LigatureWidget extends WidgetType {
+  constructor(public readonly ch: string) { super(); }
+  eq(other: LigatureWidget) { return other.ch === this.ch; }
+  toDOM() {
+    const span = document.createElement('span');
+    span.textContent = this.ch;
+    span.className = 'cm-ligature';
+    span.style.color = 'hsl(var(--primary))';
+    return span;
+  }
+  ignoreEvent() { return true; }
+}
+
+function buildLigatureDecorations(view: EditorView): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>();
+  const doc = view.state.doc;
+  for (let i = 1; i <= doc.lines; i++) {
+    const line = doc.line(i);
+    const text = line.text;
+    for (const [re, ch] of LIGATURES) {
+      re.lastIndex = 0;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(text)) !== null) {
+        const from = line.from + m.index;
+        const to = from + m[0].length;
+        builder.add(from, to, Decoration.replace({ widget: new LigatureWidget(ch) }));
+      }
+    }
+  }
+  return builder.finish();
+}
+
+const ligaturePlugin = ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet;
+    constructor(view: EditorView) { this.decorations = buildLigatureDecorations(view); }
+    update(u: { docChanged: boolean; view: EditorView }) {
+      if (u.docChanged) this.decorations = buildLigatureDecorations(u.view);
+    }
+  },
+  { decorations: (v) => v.decorations },
+);
 
 // ─────────────────────────────────────────────────────────────
 // Ghost-text state: a decoration widget after the cursor.
@@ -451,6 +511,7 @@ const NoteEditor = forwardRef<ReactCodeMirrorRef, NoteEditorProps>(function Note
   const extensions = useMemo(() => [
     markdown({ base: markdownLanguage }),
     syntaxHighlighting(mdHighlight),
+    ligaturePlugin,
     autocompletion({
       override: [slashCompletion],
       defaultKeymap: true,
