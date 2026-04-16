@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import NoteEditor from '@/components/task/NoteEditor';
 
 interface EditorProps {
   projectId: string;
@@ -12,9 +13,7 @@ export default function Editor({ projectId, onCollapse }: EditorProps) {
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load brainstorm content
   useEffect(() => {
     const load = async () => {
       const res = await fetch(`/api/projects/${projectId}/brainstorm`);
@@ -35,16 +34,13 @@ export default function Editor({ projectId, onCollapse }: EditorProps) {
     setSaving(false);
   }, [projectId]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newContent = e.target.value;
+  const handleChange = useCallback((newContent: string) => {
     setContent(newContent);
-
-    // Auto-save with 1s debounce
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       saveContent(newContent);
     }, 1000);
-  };
+  }, [saveContent]);
 
   if (!loaded) {
     return (
@@ -73,9 +69,8 @@ export default function Editor({ projectId, onCollapse }: EditorProps) {
           )}
         </div>
       </div>
-      <div className="editor-container">
-        <textarea
-          ref={textareaRef}
+      <div className="flex-1 min-h-0">
+        <NoteEditor
           value={content}
           onChange={handleChange}
           placeholder={`자유롭게 아이디어를 적어보세요...
@@ -86,9 +81,6 @@ export default function Editor({ projectId, onCollapse }: EditorProps) {
 - 알림 시스템 필요 (푸시 + 이메일)
 - 다크 모드 지원
 - 모바일 반응형 디자인 중요`}
-          className="flex-1 w-full p-4 bg-transparent resize-none text-foreground
-                     placeholder:text-muted-foreground/40 font-mono text-sm leading-relaxed"
-          spellCheck={false}
         />
       </div>
     </div>
