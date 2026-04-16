@@ -13,18 +13,19 @@ import { tags as t } from '@lezer/highlight';
 // Arrow ligatures: visually replace -> => <- etc. with unicode
 // arrows. The actual document text is unchanged.
 // ─────────────────────────────────────────────────────────────
-const LIGATURES: [RegExp, string][] = [
-  [/<-->/g, '⟷'],
-  [/<=>/g, '⇔'],
-  [/-->/g, '⟶'],
-  [/<--/g, '⟵'],
-  [/==>/g, '⟹'],
-  [/<==/g, '⟸'],
-  [/<->/g, '↔'],
-  [/=>/g, '⇒'],
-  [/->/g, '→'],
-  [/<-/g, '←'],
-];
+// Map of arrow text → unicode, longest patterns first to prevent partial matches.
+const LIGATURE_MAP: Record<string, string> = {
+  '<-->': '⟷', '<=>': '⇔',
+  '-->': '⟶', '<--': '⟵', '==>': '⟹', '<==': '⟸', '<->': '↔',
+  '=>': '⇒', '->': '→', '<-': '←',
+};
+const LIGATURE_RE = new RegExp(
+  Object.keys(LIGATURE_MAP)
+    .sort((a, b) => b.length - a.length)
+    .map(k => k.replace(/[-<>=]/g, '\\$&'))
+    .join('|'),
+  'g',
+);
 
 class LigatureWidget extends WidgetType {
   constructor(public readonly ch: string) { super(); }
@@ -44,15 +45,14 @@ function buildLigatureDecorations(view: EditorView): DecorationSet {
   const doc = view.state.doc;
   for (let i = 1; i <= doc.lines; i++) {
     const line = doc.line(i);
-    const text = line.text;
-    for (const [re, ch] of LIGATURES) {
-      re.lastIndex = 0;
-      let m: RegExpExecArray | null;
-      while ((m = re.exec(text)) !== null) {
-        const from = line.from + m.index;
-        const to = from + m[0].length;
-        builder.add(from, to, Decoration.replace({ widget: new LigatureWidget(ch) }));
-      }
+    LIGATURE_RE.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = LIGATURE_RE.exec(line.text)) !== null) {
+      const ch = LIGATURE_MAP[m[0]];
+      if (!ch) continue;
+      const from = line.from + m.index;
+      const to = from + m[0].length;
+      builder.add(from, to, Decoration.replace({ widget: new LigatureWidget(ch) }));
     }
   }
   return builder.finish();
