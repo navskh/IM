@@ -6,6 +6,7 @@ import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { EditorView, Decoration, keymap, ViewPlugin, WidgetType } from '@codemirror/view';
 import { EditorState, StateEffect, StateField, Prec } from '@codemirror/state';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { autocompletion, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete';
 import { tags as t } from '@lezer/highlight';
 
 // ─────────────────────────────────────────────────────────────
@@ -260,6 +261,54 @@ function continueList(view: EditorView): boolean {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Slash commands — type / at line start to insert structures.
+// ─────────────────────────────────────────────────────────────
+const SLASH_COMMANDS: { label: string; detail: string; insert: string }[] = [
+  { label: '/todo', detail: '체크리스트', insert: '- [ ] ' },
+  { label: '/h1', detail: '제목 1', insert: '# ' },
+  { label: '/h2', detail: '제목 2', insert: '## ' },
+  { label: '/h3', detail: '제목 3', insert: '### ' },
+  { label: '/bullet', detail: '불릿 리스트', insert: '- ' },
+  { label: '/number', detail: '번호 리스트', insert: '1. ' },
+  { label: '/quote', detail: '인용', insert: '> ' },
+  { label: '/hr', detail: '구분선', insert: '---\n' },
+  { label: '/code', detail: '코드 블록', insert: '```\n\n```' },
+  { label: '/code ts', detail: 'TypeScript 코드', insert: '```ts\n\n```' },
+  { label: '/code py', detail: 'Python 코드', insert: '```python\n\n```' },
+  { label: '/code sql', detail: 'SQL 코드', insert: '```sql\n\n```' },
+  { label: '/code sh', detail: 'Shell 코드', insert: '```bash\n\n```' },
+  { label: '/table', detail: '3열 테이블', insert: '| 열1 | 열2 | 열3 |\n|-----|-----|-----|\n|     |     |     |' },
+  { label: '/link', detail: '링크', insert: '[텍스트](url)' },
+  { label: '/bold', detail: '굵게', insert: '****' },
+  { label: '/details', detail: '접기/펼치기', insert: '<details>\n<summary>제목</summary>\n\n내용\n\n</details>' },
+];
+
+function slashCompletion(context: CompletionContext): CompletionResult | null {
+  const line = context.state.doc.lineAt(context.pos);
+  const before = line.text.slice(0, context.pos - line.from);
+  // Only trigger when `/` is at line start (possibly with leading whitespace)
+  const m = before.match(/^(\s*)(\/\S*)$/);
+  if (!m) return null;
+  const from = line.from + (m[1]?.length ?? 0);
+  return {
+    from,
+    options: SLASH_COMMANDS.map(cmd => ({
+      label: cmd.label,
+      detail: cmd.detail,
+      apply: (view: EditorView, _completion: unknown, from: number, to: number) => {
+        // Place cursor inside code blocks (between the fences)
+        const cursorOffset = cmd.insert.includes('\n\n```') ? cmd.insert.indexOf('\n\n```') + 1 : cmd.insert.length;
+        view.dispatch({
+          changes: { from, to, insert: cmd.insert },
+          selection: { anchor: from + cursorOffset },
+        });
+      },
+    })),
+    filter: true,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
 // Markdown syntax highlighting — explicit Lezer-tag mapping so list
 // marks, headings and inline code stand out clearly against plain
 // text. `t.processingInstruction` covers ATX heading `#`s, list
@@ -321,6 +370,11 @@ const NoteEditor = forwardRef<ReactCodeMirrorRef, NoteEditorProps>(function Note
   const extensions = useMemo(() => [
     markdown({ base: markdownLanguage }),
     syntaxHighlighting(mdHighlight),
+    autocompletion({
+      override: [slashCompletion],
+      defaultKeymap: true,
+      icons: false,
+    }),
     ghostField,
     ghostDecorations,
     createLocalCompletionPlugin(corpusRef),

@@ -40,6 +40,7 @@ export default function TaskDetail({
   const [tagInput, setTagInput] = useState('');
   const [showTagInput, setShowTagInput] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
   const chatWasManuallyToggled = useRef(false);
 
   // Auto-open the chat panel while the task is being executed by the watcher —
@@ -330,6 +331,48 @@ export default function TaskDetail({
 
   const priorities: ItemPriority[] = ['high', 'medium', 'low'];
 
+  // Focus mode: Esc to exit (when not in slash autocomplete or other modal)
+  useEffect(() => {
+    if (!focusMode) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setFocusMode(false); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [focusMode]);
+
+  if (focusMode) {
+    return (
+      <div className="fixed inset-0 z-40 bg-background flex flex-col">
+        <div className="flex items-center justify-between px-6 py-3 border-b border-border flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-semibold text-foreground">{task.title}</h2>
+            <span className="text-xs text-muted-foreground">Focus Mode</span>
+          </div>
+          <button
+            onClick={() => setFocusMode(false)}
+            className="text-xs px-3 py-1 rounded border border-border text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Esc 닫기
+          </button>
+        </div>
+        <div className="flex-1 min-h-0">
+          <NoteEditor
+            ref={editorRef}
+            value={description}
+            onChange={setDescription}
+            onBlur={saveDescription}
+            onOpenCommand={openPalette}
+            onPromoteLine={promoteCheckbox}
+            extraCorpus={extraCorpus}
+            placeholder="집중 모드 — 자유롭게 작성하세요…"
+          />
+        </div>
+        <CommandPalette open={paletteOpen} hasSelection={hasSelection} onClose={() => setPaletteOpen(false)} onRun={runRefine} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -398,6 +441,14 @@ export default function TaskDetail({
                        text-muted-foreground hover:text-foreground hover:border-muted-foreground"
           >
             {copied ? '✓ Copied' : 'Copy as Prompt'}
+          </button>
+          <button
+            onClick={() => setFocusMode(true)}
+            title="포커스 모드 — 노트만 풀스크린"
+            className="text-xs px-2 py-0.5 rounded transition-colors border border-border
+                       text-muted-foreground hover:text-foreground hover:border-muted-foreground"
+          >
+            Focus
           </button>
           <button
             onClick={() => { chatWasManuallyToggled.current = true; setChatOpen(v => !v); }}
