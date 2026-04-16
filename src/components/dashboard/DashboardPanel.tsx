@@ -87,6 +87,8 @@ export default function DashboardPanel() {
   useEffect(() => {
     fetchData();
     fetch('/api/global-memo').then(r => r.json()).then(d => setMemoContent(d.content || ''));
+    // Daily maintenance — clear done from today, auto-archive old done tasks
+    fetch('/api/maintenance', { method: 'POST' }).catch(() => {});
     // Restore localStorage state after mount
     const savedMemo = localStorage.getItem('im-memo-open');
     if (savedMemo === 'true') setMemoOpen(true);
