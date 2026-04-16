@@ -70,6 +70,7 @@ export default function WorkspacePanel({
   const [showFileTree, setShowFileTree] = useState(false);
   const [showAutoDistribute, setShowAutoDistribute] = useState(false);
   const [chatStates, setChatStates] = useState<Record<string, 'idle' | 'loading' | 'done'>>({});
+  const [deleteToast, setDeleteToast] = useState<{ taskId: string; title: string; timer: ReturnType<typeof setTimeout> } | null>(null);
   const syncingRef = useRef(false);
 
   // Resizable panel widths
@@ -254,10 +255,34 @@ export default function WorkspacePanel({
     });
   };
 
-  const handleTaskDelete = (taskId?: string) => {
+  const handleTaskDelete = async (taskId?: string) => {
     const tid = taskId || selectedTaskId;
-    if (!tid) return;
-    setConfirmAction({ type: 'delete-task', id: tid });
+    if (!tid || !selectedSubId) return;
+    const task = tasks.find(t => t.id === tid);
+    if (!task) return;
+
+    // Immediate archive (soft delete) + undo toast
+    await fetch(`/api/projects/${id}/sub-projects/${selectedSubId}/tasks/${tid}?mode=archive`, { method: 'DELETE' });
+    setTasks(prev => prev.filter(t => t.id !== tid));
+    if (selectedTaskId === tid) setSelectedTaskId(null);
+    loadSubProjects();
+
+    if (deleteToast?.timer) clearTimeout(deleteToast.timer);
+    const timer = setTimeout(() => setDeleteToast(null), 30000);
+    setDeleteToast({ taskId: tid, title: task.title, timer });
+  };
+
+  const undoTaskDelete = async () => {
+    if (!deleteToast) return;
+    clearTimeout(deleteToast.timer);
+    await fetch(`/api/archive?action=restore&taskId=${deleteToast.taskId}`, { method: 'POST' });
+    // Re-fetch tasks to get the restored one
+    if (selectedSubId) {
+      const res = await fetch(`/api/projects/${id}/sub-projects/${selectedSubId}/tasks`);
+      if (res.ok) setTasks(await res.json());
+    }
+    loadSubProjects();
+    setDeleteToast(null);
   };
 
   const handleConfirmAction = async (mode?: 'archive' | 'permanent') => {
@@ -550,6 +575,18 @@ export default function WorkspacePanel({
             onCreateTask={handleCreateTask} onStatusChange={handleTaskStatusChange}
             onTodayToggle={handleTaskTodayToggle} onDeleteTask={handleTaskDelete}
             onReorderSubs={handleReorderSubs}
+            onReorderTasks={async (orderedIds) => {
+              if (!selectedSubId) return;
+              setTasks(prev => {
+                const map = new Map(prev.map(t => [t.id, t]));
+                return orderedIds.map(id => map.get(id)!).filter(Boolean);
+              });
+              await fetch(`/api/projects/${id}/sub-projects/${selectedSubId}/tasks/reorder`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderedIds }),
+              });
+            }}
             onAutoDistribute={() => setShowAutoDistribute(true)}
             chatStates={chatStates} />
         </div>
@@ -641,6 +678,25 @@ export default function WorkspacePanel({
           projectName={project.name}
           onClose={() => setShowAdvisor(false)}
         />
+      )}
+      {deleteToast && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-card border border-border rounded-lg shadow-xl px-4 py-2.5 flex items-center gap-3 animate-dialog-in">
+          <span className="text-xs text-muted-foreground truncate max-w-[200px]">
+            &quot;{deleteToast.title}&quot; 삭제됨
+          </span>
+          <button
+            onClick={undoTaskDelete}
+            className="text-xs px-2 py-1 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity"
+          >
+            되돌리기
+          </button>
+          <button
+            onClick={() => { clearTimeout(deleteToast.timer); setDeleteToast(null); }}
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            ×
+          </button>
+        </div>
       )}
     </div>
   );

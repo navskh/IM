@@ -50,6 +50,7 @@ export default function ProjectTree({
   onTodayToggle,
   onDeleteTask,
   onReorderSubs,
+  onReorderTasks,
   onAutoDistribute,
   chatStates,
 }: {
@@ -67,6 +68,7 @@ export default function ProjectTree({
   onTodayToggle: (taskId: string, isToday: boolean) => void;
   onDeleteTask: (taskId: string) => void;
   onReorderSubs?: (orderedIds: string[]) => void;
+  onReorderTasks?: (orderedIds: string[]) => void;
   onAutoDistribute?: () => void;
   chatStates?: Record<string, 'idle' | 'loading' | 'done'>;
 }) {
@@ -172,6 +174,7 @@ export default function ProjectTree({
                 onStatusChange={onStatusChange}
                 onTodayToggle={onTodayToggle}
                 onDeleteTask={onDeleteTask}
+                onReorderTasks={onReorderTasks}
                 onAddTask={handleAddTask}
                 onSetAddingTaskFor={setAddingTaskFor}
                 onSetNewTaskTitle={setNewTaskTitle}
@@ -201,6 +204,7 @@ function SortableSubProject({
   onStatusChange,
   onTodayToggle,
   onDeleteTask,
+  onReorderTasks,
   onAddTask,
   onSetAddingTaskFor,
   onSetNewTaskTitle,
@@ -221,6 +225,7 @@ function SortableSubProject({
   onStatusChange: (taskId: string, status: TaskStatus) => void;
   onTodayToggle: (taskId: string, isToday: boolean) => void;
   onDeleteTask: (taskId: string) => void;
+  onReorderTasks?: (orderedIds: string[]) => void;
   onAddTask: (subId: string) => void;
   onSetAddingTaskFor: (subId: string | null) => void;
   onSetNewTaskTitle: (title: string) => void;
@@ -228,6 +233,23 @@ function SortableSubProject({
 }) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(sp.name);
+
+  const taskSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleTaskDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !onReorderTasks) return;
+    const oldIndex = subTasks.findIndex(t => t.id === active.id);
+    const newIndex = subTasks.findIndex(t => t.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const newOrder = [...subTasks];
+    const [moved] = newOrder.splice(oldIndex, 1);
+    newOrder.splice(newIndex, 0, moved);
+    onReorderTasks(newOrder.map(t => t.id));
+  };
 
   const {
     attributes,
@@ -348,63 +370,22 @@ function SortableSubProject({
               No tasks
             </div>
           )}
-          {subTasks.map((task) => (
-            <div
-              key={task.id}
-              onClick={() => onSelectTask(task.id)}
-              className={`group/task flex items-center gap-1.5 pl-4 pr-2 py-1.5 cursor-pointer transition-colors text-sm border-l-2 ${
-                selectedTaskId === task.id
-                  ? 'bg-card-hover border-l-primary'
-                  : 'border-l-transparent hover:bg-card-hover/50'
-              }`}
-            >
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const nextStatus = getNextStatus(task.status);
-                  onStatusChange(task.id, nextStatus);
-                }}
-                className="flex-shrink-0 text-sm"
-                title={`Status: ${task.status}`}
-              >
-                {statusIcon(task.status)}
-              </button>
-              <span className={`tree-priority-dot ${PRIORITY_COLORS[task.priority]}`} />
-              <span className={`flex-1 truncate ${task.status === 'done' ? 'text-muted-foreground line-through' : ''}`}>
-                {task.title}
-              </span>
-              {chatStates?.[task.id] === 'loading' && (
-                <span className="flex-shrink-0 flex items-center gap-1 text-[10px] text-warning" title="AI 응답 대기 중">
-                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
-                  AI...
-                </span>
-              )}
-              {chatStates?.[task.id] === 'done' && (
-                <span className="flex-shrink-0 text-[10px] text-success" title="AI 응답 완료">
-                  ✓
-                </span>
-              )}
-              {task.is_today && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); onTodayToggle(task.id, false); }}
-                  className="text-xs flex-shrink-0 text-primary" title="Remove from today"
-                >
-                  *
-                </button>
-              )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteTask(task.id);
-                }}
-                className="flex-shrink-0 text-muted-foreground/0 group-hover/task:text-muted-foreground
-                           hover:!text-destructive transition-colors text-xs px-0.5"
-                title="Delete task"
-              >
-                ×
-              </button>
-            </div>
-          ))}
+          <DndContext sensors={taskSensors} collisionDetection={closestCenter} onDragEnd={handleTaskDragEnd}>
+            <SortableContext items={subTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+              {subTasks.map((task) => (
+                <SortableTask
+                  key={task.id}
+                  task={task}
+                  isSelected={selectedTaskId === task.id}
+                  chatState={chatStates?.[task.id]}
+                  onSelect={() => onSelectTask(task.id)}
+                  onStatusChange={onStatusChange}
+                  onTodayToggle={onTodayToggle}
+                  onDelete={() => onDeleteTask(task.id)}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
 
           {/* Add task input */}
           {addingTaskFor === sp.id ? (
@@ -451,6 +432,73 @@ function SortableSubProject({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function SortableTask({
+  task,
+  isSelected,
+  chatState,
+  onSelect,
+  onStatusChange,
+  onTodayToggle,
+  onDelete,
+}: {
+  task: ITask;
+  isSelected: boolean;
+  chatState?: 'idle' | 'loading' | 'done';
+  onSelect: () => void;
+  onStatusChange: (taskId: string, status: TaskStatus) => void;
+  onTodayToggle: (taskId: string, isToday: boolean) => void;
+  onDelete: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      onClick={onSelect}
+      className={`group/task flex items-center gap-1 pl-2 pr-2 py-1.5 cursor-pointer transition-colors text-sm border-l-2 ${
+        isSelected ? 'bg-card-hover border-l-primary' : 'border-l-transparent hover:bg-card-hover/50'
+      }`}
+    >
+      <span
+        {...attributes}
+        {...listeners}
+        className="w-3 h-4 flex items-center justify-center text-[10px] text-muted-foreground/30 hover:text-muted-foreground cursor-grab active:cursor-grabbing flex-shrink-0"
+        onClick={(e) => e.stopPropagation()}
+      >
+        ⠿
+      </span>
+      <button
+        onClick={(e) => { e.stopPropagation(); onStatusChange(task.id, getNextStatus(task.status)); }}
+        className="flex-shrink-0 text-sm"
+        title={`Status: ${task.status}`}
+      >
+        {statusIcon(task.status)}
+      </button>
+      <span className={`tree-priority-dot ${PRIORITY_COLORS[task.priority]}`} />
+      <span className={`flex-1 truncate ${task.status === 'done' ? 'text-muted-foreground line-through' : ''}`}>
+        {task.title}
+      </span>
+      {chatState === 'loading' && (
+        <span className="flex-shrink-0 flex items-center gap-1 text-[10px] text-warning">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
+        </span>
+      )}
+      {chatState === 'done' && <span className="flex-shrink-0 text-[10px] text-success">✓</span>}
+      {task.is_today && (
+        <button onClick={(e) => { e.stopPropagation(); onTodayToggle(task.id, false); }} className="text-xs flex-shrink-0 text-primary">*</button>
+      )}
+      <button
+        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+        className="flex-shrink-0 text-muted-foreground/0 group-hover/task:text-muted-foreground hover:!text-destructive transition-colors text-xs px-0.5"
+      >
+        ×
+      </button>
     </div>
   );
 }

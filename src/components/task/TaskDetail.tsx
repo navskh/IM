@@ -37,6 +37,8 @@ export default function TaskDetail({
   const [description, setDescription] = useState(task.description);
   const [editingTitle, setEditingTitle] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [tagInput, setTagInput] = useState('');
+  const [showTagInput, setShowTagInput] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const chatWasManuallyToggled = useRef(false);
 
@@ -420,6 +422,46 @@ export default function TaskDetail({
           >
             Delete
           </button>
+        </div>
+
+        {/* Tags */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {(task.tags ?? []).map(tag => (
+            <span key={tag} className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border">
+              {tag}
+              <button
+                onClick={() => onUpdate({ tags: task.tags.filter(t => t !== tag) })}
+                className="text-muted-foreground/60 hover:text-destructive text-[10px] leading-none"
+              >×</button>
+            </span>
+          ))}
+          {showTagInput ? (
+            <input
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const t = tagInput.trim();
+                  if (t && !(task.tags ?? []).includes(t)) {
+                    onUpdate({ tags: [...(task.tags ?? []), t] });
+                  }
+                  setTagInput('');
+                }
+                if (e.key === 'Escape') { setTagInput(''); setShowTagInput(false); }
+              }}
+              onBlur={() => { setTagInput(''); setShowTagInput(false); }}
+              placeholder="태그 입력…"
+              className="text-xs bg-transparent border-b border-border focus:border-primary focus:outline-none px-1 py-0.5 w-24"
+              autoFocus
+            />
+          ) : (
+            <button
+              onClick={() => setShowTagInput(true)}
+              className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+            >
+              + tag
+            </button>
+          )}
         </div>
       </div>
 
