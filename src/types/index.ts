@@ -70,6 +70,14 @@ export interface ITaskConversation {
   created_at: string;
 }
 
+export interface IProjectConversation {
+  id: string;
+  project_id: string;
+  role: 'assistant' | 'user' | 'system';
+  content: string;
+  created_at: string;
+}
+
 export interface IGitSyncResult {
   projectId: string;
   projectName: string;

@@ -11,6 +11,7 @@ import AiPolicyModal from '@/components/ui/AiPolicyModal';
 import GitSyncResultsModal from '@/components/dashboard/GitSyncResultsModal';
 import FileTreeDrawer from '@/components/ui/FileTreeDrawer';
 import AutoDistributeModal from '@/components/ui/AutoDistributeModal';
+import ProjectAdvisor from '@/components/workspace/ProjectAdvisor';
 import type { ISubProject, ITask, TaskStatus, ISubProjectWithStats, IGitSyncResult } from '@/types';
 
 interface IProject {
@@ -62,6 +63,7 @@ export default function WorkspacePanel({
   const [showBrainstorm, setShowBrainstorm] = useState(true);
   const [newSubName, setNewSubName] = useState('');
   const [showAiPolicy, setShowAiPolicy] = useState(false);
+  const [showAdvisor, setShowAdvisor] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncResults, setSyncResults] = useState<IGitSyncResult[] | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
@@ -359,6 +361,12 @@ export default function WorkspacePanel({
         addBtn?.click();
         return;
       }
+      // ⌘L — toggle project advisor (works even from input/editor)
+      if ((e.metaKey || e.ctrlKey) && e.code === 'KeyL') {
+        e.preventDefault();
+        setShowAdvisor(prev => !prev);
+        return;
+      }
       if (selectedTaskId && selectedSubId && !isInput) {
         const statusMap: Record<string, TaskStatus> = {
           'Digit1': 'idea', 'Digit2': 'doing', 'Digit3': 'done', 'Digit4': 'problem',
@@ -440,6 +448,15 @@ export default function WorkspacePanel({
                 : 'bg-muted hover:bg-card-hover text-muted-foreground border-border'
             }`}>
             AI Policy{project.ai_context ? ' *' : ''}
+          </button>
+          <button onClick={() => setShowAdvisor(true)}
+            className={`px-3 py-1.5 text-xs border rounded-md transition-colors ${
+              showAdvisor
+                ? 'bg-primary/15 text-primary border-primary/30'
+                : 'bg-muted hover:bg-card-hover text-muted-foreground border-border'
+            }`}
+            title="프로젝트 어드바이저 (⌘L)">
+            Advisor
           </button>
           {project.project_path ? (
             <div className="flex items-center gap-1.5">
@@ -603,6 +620,12 @@ export default function WorkspacePanel({
         onClose={() => setShowAutoDistribute(false)}
         onApplied={() => { loadSubProjects(); }}
       />
+      {showAdvisor && (
+        <ProjectAdvisor
+          projectId={id}
+          onClose={() => setShowAdvisor(false)}
+        />
+      )}
     </div>
   );
 }

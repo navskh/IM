@@ -95,6 +95,17 @@ export function initSchema(db: any): void {
     );
   `);
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS project_conversations (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL,
+      role TEXT NOT NULL CHECK(role IN ('assistant','user','system')),
+      content TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    );
+  `);
+
   // tasks archive migration
   const taskCols = db.prepare("PRAGMA table_info(tasks)").all() as { name: string }[];
   if (!taskCols.some(c => c.name === 'is_archived')) {
