@@ -4,6 +4,25 @@ import { getTasksByProject } from '../db/queries/tasks';
 import { getBrainstorm } from '../db/queries/brainstorms';
 import type { ITask, TaskStatus } from '../../types';
 
+const ACTION_INSTRUCTIONS = `
+## Actions
+사용자가 요청하면 태스크 생성/수정을 제안할 수 있습니다. \`\`\`action 블록을 사용하세요.
+사용자가 명시적으로 요청하지 않으면 action 블록을 넣지 마세요.
+
+형식:
+\`\`\`action
+[
+  {"type":"create_task","subProjectId":"<sub_id값>","title":"제목","priority":"high|medium|low","status":"idea"},
+  {"type":"update_task","taskId":"<task_id값>","changes":{"status":"done"}}
+]
+\`\`\`
+
+규칙:
+- subProjectId, taskId는 아래 컨텍스트의 [sub_id:...], [task_id:...] 값을 정확히 사용
+- action 블록 앞에 항상 무엇을 제안하는지 설명
+- 사용자가 승인해야 실행됨 (자동 실행 아님)
+`;
+
 const MAX_BRAINSTORM = 4000;
 const NOTE_LIMIT_ACTIVE = 500;
 const NOTE_LIMIT_DEFAULT = 200;
@@ -49,7 +68,7 @@ export function buildProjectAdvisorPrompt(projectId: string): string {
       continue;
     }
     const lines: string[] = [];
-    lines.push(`### ${sub.name}`);
+    lines.push(`### ${sub.name} [sub_id:${sub.id}]`);
     if (sub.description) lines.push(sub.description);
     lines.push(`태스크 ${tasks.length}개:`);
     for (const t of tasks) {
@@ -58,7 +77,7 @@ export function buildProjectAdvisorPrompt(projectId: string): string {
       const flags = [t.priority === 'high' ? 'HIGH' : null, t.is_today ? 'today' : null].filter(Boolean).join(', ');
       const flagStr = flags ? ` (${flags})` : '';
       const noteStr = note ? ` — ${note}` : '';
-      lines.push(`- [${STATUS_ICON[t.status] ?? t.status}] **${t.title}**${flagStr}${noteStr}`);
+      lines.push(`- [${STATUS_ICON[t.status] ?? t.status}] **${t.title}** [task_id:${t.id}]${flagStr}${noteStr}`);
     }
     subSections.push(lines.join('\n'));
   }
@@ -86,6 +105,7 @@ export function buildProjectAdvisorPrompt(projectId: string): string {
   parts.push(`당신은 프로젝트 "${project.name}"의 어드바이저입니다.`);
   parts.push(`사용자가 프로젝트 방향, 우선순위, 빠진 부분, 다음 단계 등을 논의하면 프로젝트 전체 맥락을 바탕으로 간결하게 답합니다.`);
   parts.push(`태스크를 언급할 때는 정확한 제목을 쓰세요. 한국어로 답하세요. 긴 설교는 금지.`);
+  parts.push(ACTION_INSTRUCTIONS);
 
   if (project.ai_context) {
     parts.push(`\nProject AI Policy:\n${project.ai_context}`);

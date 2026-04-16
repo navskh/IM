@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { IProjectConversation } from '@/types';
 import { registerAiActivity, unregisterAiActivity } from '@/lib/ai-activity';
+import { parseAdvisorContent } from '@/lib/advisor-actions/parse';
+import ActionBlock from './ActionBlock';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -116,15 +118,23 @@ export default function AdvisorChat({
           )}
           {messages.filter(m => m.role !== 'system').map((msg) => (
             <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-              <div className={`max-w-[92%] px-3 py-2 rounded-lg text-sm leading-relaxed ${
-                msg.role === 'user'
-                  ? 'bg-accent text-white rounded-br-sm whitespace-pre-wrap'
-                  : 'bg-muted text-foreground rounded-bl-sm chat-markdown'
-              }`}>
-                {msg.role === 'assistant'
-                  ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-                  : msg.content}
-              </div>
+              {msg.role === 'user' ? (
+                <div className="max-w-[92%] px-3 py-2 rounded-lg text-sm leading-relaxed bg-accent text-white rounded-br-sm whitespace-pre-wrap">
+                  {msg.content}
+                </div>
+              ) : (
+                <div className="max-w-[92%] w-full">
+                  {parseAdvisorContent(msg.content).segments.map((seg, i) =>
+                    seg.type === 'markdown' ? (
+                      <div key={i} className="px-3 py-2 rounded-lg bg-muted text-foreground rounded-bl-sm chat-markdown text-sm leading-relaxed">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{seg.text}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      <ActionBlock key={i} actions={seg.actions} />
+                    )
+                  )}
+                </div>
+              )}
             </div>
           ))}
           {loading && (

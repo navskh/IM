@@ -156,6 +156,16 @@ export default function WorkspacePanel({
 
   const selectedTask = tasks.find(t => t.id === selectedTaskId) ?? null;
 
+  // Refresh when advisor actions are applied (from any advisor — project or global)
+  useEffect(() => {
+    const refresh = () => { loadSubProjects(); if (selectedSubId) {
+      fetch(`/api/projects/${id}/sub-projects/${selectedSubId}/tasks`)
+        .then(r => r.json()).then(setTasks).catch(() => {});
+    }};
+    window.addEventListener('advisor-action-applied', refresh);
+    return () => window.removeEventListener('advisor-action-applied', refresh);
+  }, [id, selectedSubId, loadSubProjects]);
+
   const handleCreateSubProject = async () => {
     if (!newSubName.trim()) return;
     const res = await fetch(`/api/projects/${id}/sub-projects`, {
