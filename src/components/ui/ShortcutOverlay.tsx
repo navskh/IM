@@ -31,6 +31,10 @@ const SECTIONS: { title: string; shortcuts: { keys: string; desc: string }[] }[]
     shortcuts: [
       { keys: '⌘K', desc: 'AI 명령 팔레트' },
       { keys: '⌘⇧T', desc: '체크박스/불릿 → 태스크 승격' },
+      { keys: '/', desc: '슬래시 명령 (/todo, /table, /code…)' },
+      { keys: '⌘↵', desc: '체크박스 토글 [ ] ↔ [x]' },
+      { keys: '⌘⇧↵', desc: '테이블 행 추가' },
+      { keys: '⌘⇧⌫', desc: '테이블 행 삭제' },
       { keys: 'Tab', desc: '고스트 자동완성 수락' },
       { keys: 'Esc', desc: '고스트 해제' },
       { keys: 'Enter', desc: '리스트 자동 이어쓰기' },

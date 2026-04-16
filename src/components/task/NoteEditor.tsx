@@ -210,6 +210,73 @@ function dismissGhost(view: EditorView): boolean {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Checkbox toggle (⌘Enter): [ ] ↔ [x]
+// ─────────────────────────────────────────────────────────────
+function toggleCheckbox(view: EditorView): boolean {
+  const pos = view.state.selection.main.head;
+  const line = view.state.doc.lineAt(pos);
+  const unchecked = line.text.match(/^(\s*[-*+]\s)\[ \](.*)$/);
+  if (unchecked) {
+    const replacement = `${unchecked[1]}[x]${unchecked[2]}`;
+    view.dispatch({ changes: { from: line.from, to: line.to, insert: replacement } });
+    return true;
+  }
+  const checked = line.text.match(/^(\s*[-*+]\s)\[[xX]\](.*)$/);
+  if (checked) {
+    const replacement = `${checked[1]}[ ]${checked[2]}`;
+    view.dispatch({ changes: { from: line.from, to: line.to, insert: replacement } });
+    return true;
+  }
+  return false;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Table commands: add row below, delete current row
+// ─────────────────────────────────────────────────────────────
+function isTableLine(text: string): boolean {
+  return /^\s*\|/.test(text);
+}
+
+function isSeparatorLine(text: string): boolean {
+  return /^\s*\|[\s:|-]+\|\s*$/.test(text);
+}
+
+function countColumns(text: string): number {
+  // Count | excluding escaped ones, minus 1 (fence)
+  const parts = text.split('|').filter(p => p !== undefined);
+  // first and last might be empty (leading/trailing |)
+  return Math.max(parts.length - 2, 1);
+}
+
+function tableAddRow(view: EditorView): boolean {
+  const pos = view.state.selection.main.head;
+  const line = view.state.doc.lineAt(pos);
+  if (!isTableLine(line.text)) return false;
+  const cols = countColumns(line.text);
+  const emptyRow = '|' + Array(cols).fill('     ').join('|') + '|';
+  view.dispatch({
+    changes: { from: line.to, insert: '\n' + emptyRow },
+    selection: { anchor: line.to + 2 }, // cursor inside first cell
+  });
+  return true;
+}
+
+function tableDeleteRow(view: EditorView): boolean {
+  const pos = view.state.selection.main.head;
+  const line = view.state.doc.lineAt(pos);
+  if (!isTableLine(line.text) || isSeparatorLine(line.text)) return false;
+  // Don't delete if it's the header line (first table line or line after which is separator)
+  const nextLine = line.to < view.state.doc.length ? view.state.doc.lineAt(line.to + 1) : null;
+  if (nextLine && isSeparatorLine(nextLine.text)) return false; // header row
+  const from = line.from > 0 ? line.from - 1 : line.from; // include preceding newline
+  view.dispatch({
+    changes: { from, to: line.to },
+    selection: { anchor: Math.min(from, view.state.doc.length) },
+  });
+  return true;
+}
+
+// ─────────────────────────────────────────────────────────────
 // Markdown list / checkbox continuation on Enter.
 // ─────────────────────────────────────────────────────────────
 function continueList(view: EditorView): boolean {
@@ -281,6 +348,8 @@ const SLASH_COMMANDS: { label: string; detail: string; insert: string }[] = [
   { label: '/link', detail: '링크', insert: '[텍스트](url)' },
   { label: '/bold', detail: '굵게', insert: '****' },
   { label: '/details', detail: '접기/펼치기', insert: '<details>\n<summary>제목</summary>\n\n내용\n\n</details>' },
+  { label: '/addrow', detail: '테이블 행 추가 (⌘⇧↵)', insert: '' },
+  { label: '/delrow', detail: '테이블 행 삭제 (⌘⇧⌫)', insert: '' },
 ];
 
 function slashCompletion(context: CompletionContext): CompletionResult | null {
@@ -296,6 +365,17 @@ function slashCompletion(context: CompletionContext): CompletionResult | null {
       label: cmd.label,
       detail: cmd.detail,
       apply: (view: EditorView, _completion: unknown, from: number, to: number) => {
+        // Special table commands — execute action instead of inserting text
+        if (cmd.label === '/addrow') {
+          view.dispatch({ changes: { from, to, insert: '' } });
+          tableAddRow(view);
+          return;
+        }
+        if (cmd.label === '/delrow') {
+          view.dispatch({ changes: { from, to, insert: '' } });
+          tableDeleteRow(view);
+          return;
+        }
         // Place cursor inside code blocks (between the fences)
         const cursorOffset = cmd.insert.includes('\n\n```') ? cmd.insert.indexOf('\n\n```') + 1 : cmd.insert.length;
         view.dispatch({
@@ -382,6 +462,9 @@ const NoteEditor = forwardRef<ReactCodeMirrorRef, NoteEditorProps>(function Note
       { key: 'Tab', run: acceptGhost },
       { key: 'Escape', run: dismissGhost },
       { key: 'Enter', run: continueList },
+      { key: 'Mod-Enter', run: toggleCheckbox },
+      { key: 'Mod-Shift-Enter', run: tableAddRow },
+      { key: 'Mod-Shift-Backspace', run: tableDeleteRow },
       { key: 'Mod-k', run: () => { onOpenCommand?.(); return true; } },
       { key: 'Mod-Shift-t', run: () => { onPromoteLine?.(); return true; } },
     ])),
