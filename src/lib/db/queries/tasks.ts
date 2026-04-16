@@ -116,6 +116,7 @@ export function updateTask(id: string, data: {
   priority?: ItemPriority;
   is_today?: boolean;
   sort_order?: number;
+  project_id?: string;
   sub_project_id?: string;
   tags?: string[];
 }): ITask | undefined {
@@ -127,7 +128,7 @@ export function updateTask(id: string, data: {
   db.prepare(`
     UPDATE tasks SET
       title = ?, description = ?, status = ?, priority = ?,
-      is_today = ?, sort_order = ?, sub_project_id = ?, tags = ?, updated_at = ?
+      is_today = ?, sort_order = ?, project_id = ?, sub_project_id = ?, tags = ?, updated_at = ?
     WHERE id = ?
   `).run(
     data.title ?? row.title,
@@ -136,6 +137,7 @@ export function updateTask(id: string, data: {
     data.priority ?? row.priority,
     data.is_today !== undefined ? (data.is_today ? 1 : 0) : row.is_today,
     data.sort_order ?? row.sort_order,
+    data.project_id ?? row.project_id,
     data.sub_project_id ?? row.sub_project_id,
     data.tags ? JSON.stringify(data.tags) : row.tags,
     now,

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ITaskConversation, TaskStatus } from '@/types';
+import { registerAiActivity, unregisterAiActivity } from '@/lib/ai-activity';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -82,9 +83,11 @@ export default function TaskChat({
     if (!text || loading) return;
 
     const sendPath = basePath;
+    const actId = `task-chat-${Date.now()}`;
     setInput('');
     setLoading(true);
     onChatStateChange?.('loading');
+    registerAiActivity({ id: actId, type: 'task-chat', label: 'Note Assistant', startedAt: Date.now() });
 
     // Optimistic user message
     const tempId = `temp-${Date.now()}`;
@@ -116,6 +119,7 @@ export default function TaskChat({
         }
       }
     } catch { /* silent */ }
+    unregisterAiActivity(actId);
     if (basePathRef.current === sendPath) {
       setLoading(false);
       inputRef.current?.focus();

@@ -6,6 +6,7 @@ import StatusFlow from './StatusFlow';
 import TaskChat from './TaskChat';
 import NoteEditor, { getPromotableLine } from './NoteEditor';
 import CommandPalette, { type RefineCommand } from './CommandPalette';
+import { registerAiActivity, unregisterAiActivity } from '@/lib/ai-activity';
 import type { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 
 export default function TaskDetail({
@@ -16,6 +17,7 @@ export default function TaskDetail({
   onUpdate,
   onDelete,
   onTaskPromoted,
+  onTaskMoved,
   onChatStateChange,
 }: {
   task: ITask;
@@ -27,6 +29,8 @@ export default function TaskDetail({
   onDelete: () => void;
   /** Fired after a checkbox line is promoted to a new task. Parent should refresh its task list. */
   onTaskPromoted?: (newTask: ITask) => void;
+  /** Fired after task is moved to another sub-project. Parent should refresh. */
+  onTaskMoved?: () => void;
   onChatStateChange?: (taskId: string, state: 'idle' | 'loading' | 'done') => void;
 }) {
   const [title, setTitle] = useState(task.title);
@@ -148,6 +152,8 @@ export default function TaskDetail({
     setRefineElapsed(0);
     const abort = new AbortController();
     refineAbortRef.current = abort;
+    const actId = `refine-${Date.now()}`;
+    registerAiActivity({ id: actId, type: 'refine', label: `Refine: ${task.title}`, startedAt: Date.now() });
     const started = Date.now();
     const tick = setInterval(() => setRefineElapsed(Math.floor((Date.now() - started) / 1000)), 500);
 
@@ -228,6 +234,7 @@ export default function TaskDetail({
       clearInterval(tick);
       setRefining(false);
       refineAbortRef.current = null;
+      unregisterAiActivity(actId);
     }
   }, [basePath, onUpdate, task.id]);
 
@@ -244,6 +251,42 @@ export default function TaskDetail({
   }, [undoSnapshot, task.id, onUpdate]);
 
   const [promoteNotice, setPromoteNotice] = useState<string | null>(null);
+  const [showMoveModal, setShowMoveModal] = useState(false);
+  const [moveProjects, setMoveProjects] = useState<{ id: string; name: string; subs: { id: string; name: string }[] }[]>([]);
+  const [moveTargetSub, setMoveTargetSub] = useState('');
+  const [moving, setMoving] = useState(false);
+
+  const openMoveModal = useCallback(async () => {
+    try {
+      const pRes = await fetch('/api/projects');
+      const projects = await pRes.json() as { id: string; name: string }[];
+      const withSubs = await Promise.all(projects.map(async (p) => {
+        const sRes = await fetch(`/api/projects/${p.id}/sub-projects`);
+        const subs = await sRes.json() as { id: string; name: string }[];
+        return { ...p, subs };
+      }));
+      setMoveProjects(withSubs);
+      setMoveTargetSub('');
+      setShowMoveModal(true);
+    } catch { /* silent */ }
+  }, []);
+
+  const doMove = useCallback(async () => {
+    if (!moveTargetSub || moving) return;
+    setMoving(true);
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/move`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subProjectId: moveTargetSub }),
+      });
+      if (res.ok) {
+        setShowMoveModal(false);
+        onTaskMoved?.();
+      }
+    } catch { /* silent */ }
+    setMoving(false);
+  }, [moveTargetSub, moving, task.id, onTaskMoved]);
 
   const promoteCheckbox = useCallback(async () => {
     const view = editorRef.current?.view;
@@ -366,8 +409,14 @@ export default function TaskDetail({
           </button>
 
           <button
+            onClick={openMoveModal}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors ml-auto"
+          >
+            Move
+          </button>
+          <button
             onClick={onDelete}
-            className="text-xs text-muted-foreground hover:text-destructive transition-colors ml-auto"
+            className="text-xs text-muted-foreground hover:text-destructive transition-colors"
           >
             Delete
           </button>
@@ -460,6 +509,45 @@ export default function TaskDetail({
         onClose={() => setPaletteOpen(false)}
         onRun={runRefine}
       />
+
+      {showMoveModal && (
+        <div
+          onClick={() => setShowMoveModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)' }}
+        >
+          <div onClick={(e) => e.stopPropagation()} className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-sm p-4 flex flex-col gap-3 animate-dialog-in">
+            <div className="text-sm font-semibold text-foreground">태스크 이동</div>
+            <div className="text-xs text-muted-foreground">"{task.title}" 을 다른 프로젝트로 이동합니다.</div>
+            <select
+              value={moveTargetSub}
+              onChange={(e) => setMoveTargetSub(e.target.value)}
+              className="bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+            >
+              <option value="">이동할 대상 선택…</option>
+              {moveProjects.map(p => (
+                <optgroup key={p.id} label={p.name}>
+                  {p.subs.map(s => (
+                    <option key={s.id} value={s.id} disabled={s.id === subProjectId}>
+                      {s.name}{s.id === subProjectId ? ' (현재)' : ''}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowMoveModal(false)} className="text-xs text-muted-foreground px-2 py-1">취소</button>
+              <button
+                onClick={doMove}
+                disabled={!moveTargetSub || moving}
+                className="text-xs px-3 py-1 bg-primary text-primary-foreground rounded disabled:opacity-40"
+              >
+                {moving ? '이동 중…' : '이동'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

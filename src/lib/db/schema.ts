@@ -96,6 +96,14 @@ export function initSchema(db: any): void {
   `);
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS global_conversations (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL DEFAULT '__global__',
+      role TEXT NOT NULL CHECK(role IN ('assistant','user','system')),
+      content TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS project_conversations (
       id TEXT PRIMARY KEY,
       project_id TEXT NOT NULL,

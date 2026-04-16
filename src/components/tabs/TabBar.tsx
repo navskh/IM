@@ -3,6 +3,7 @@
 import { useTabContext } from './TabContext';
 import ThemePicker from '@/components/theme/ThemePicker';
 import UpdateButton from '@/components/update/UpdateButton';
+import AiActivityIndicator from '@/components/ui/AiActivityIndicator';
 
 export default function TabBar() {
   const { state, setActiveTab, closeTab } = useTabContext();
@@ -44,6 +45,7 @@ export default function TabBar() {
         );
       })}
       <div className="tab-bar-spacer" />
+      <AiActivityIndicator />
       <UpdateButton />
       <ThemePicker />
     </div>

@@ -554,6 +554,11 @@ export default function WorkspacePanel({
               siblingTasks={tasks}
               onUpdate={handleTaskUpdate} onDelete={handleTaskDelete}
               onTaskPromoted={(newTask) => setTasks(prev => [...prev, newTask])}
+              onTaskMoved={() => {
+                // Task moved away — remove from current list and deselect
+                setTasks(prev => prev.filter(t => t.id !== selectedTaskId));
+                setSelectedTaskId(null);
+              }}
               onChatStateChange={(taskId, state) => {
                 setChatStates(prev => ({ ...prev, [taskId]: state }));
               }} />
@@ -623,6 +628,7 @@ export default function WorkspacePanel({
       {showAdvisor && (
         <ProjectAdvisor
           projectId={id}
+          projectName={project.name}
           onClose={() => setShowAdvisor(false)}
         />
       )}
