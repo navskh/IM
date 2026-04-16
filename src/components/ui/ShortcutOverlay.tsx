@@ -17,6 +17,7 @@ const SECTIONS: { title: string; shortcuts: { keys: string; desc: string }[] }[]
     title: '워크스페이스',
     shortcuts: [
       { keys: '⌘L', desc: 'Project Advisor 열기/닫기' },
+      { keys: 'F', desc: '포커스 모드 (노트 풀스크린)' },
       { keys: 'B', desc: '브레인스토밍 패널 토글' },
       { keys: 'N', desc: '새 프로젝트 추가' },
       { keys: 'T', desc: '새 태스크 추가' },

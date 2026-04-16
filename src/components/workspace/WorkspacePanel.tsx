@@ -64,6 +64,7 @@ export default function WorkspacePanel({
   const [newSubName, setNewSubName] = useState('');
   const [showAiPolicy, setShowAiPolicy] = useState(false);
   const [showAdvisor, setShowAdvisor] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncResults, setSyncResults] = useState<IGitSyncResult[] | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
@@ -396,6 +397,11 @@ export default function WorkspacePanel({
         addBtn?.click();
         return;
       }
+      if (!isInput && e.code === 'KeyF' && !e.metaKey && !e.ctrlKey && selectedTaskId) {
+        e.preventDefault();
+        setFocusMode(true);
+        return;
+      }
       // ⌘L — toggle project advisor (works even from input/editor)
       if ((e.metaKey || e.ctrlKey) && e.code === 'KeyL') {
         e.preventDefault();
@@ -600,6 +606,8 @@ export default function WorkspacePanel({
             <TaskDetail task={selectedTask} projectId={id} subProjectId={selectedSubId!}
               siblingTasks={tasks}
               onUpdate={handleTaskUpdate} onDelete={handleTaskDelete}
+              focusMode={focusMode}
+              onFocusModeChange={setFocusMode}
               onTaskPromoted={(newTask) => setTasks(prev => [...prev, newTask])}
               onTaskMoved={() => {
                 // Task moved away — remove from current list and deselect

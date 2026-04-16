@@ -18,6 +18,8 @@ export default function TaskDetail({
   onDelete,
   onTaskPromoted,
   onTaskMoved,
+  focusMode,
+  onFocusModeChange,
   onChatStateChange,
 }: {
   task: ITask;
@@ -31,6 +33,8 @@ export default function TaskDetail({
   onTaskPromoted?: (newTask: ITask) => void;
   /** Fired after task is moved to another sub-project. Parent should refresh. */
   onTaskMoved?: () => void;
+  focusMode?: boolean;
+  onFocusModeChange?: (on: boolean) => void;
   onChatStateChange?: (taskId: string, state: 'idle' | 'loading' | 'done') => void;
 }) {
   const [title, setTitle] = useState(task.title);
@@ -40,7 +44,7 @@ export default function TaskDetail({
   const [tagInput, setTagInput] = useState('');
   const [showTagInput, setShowTagInput] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [focusMode, setFocusMode] = useState(false);
+  const setFocusMode = (on: boolean) => onFocusModeChange?.(on);
   const chatWasManuallyToggled = useRef(false);
 
   // Auto-open the chat panel while the task is being executed by the watcher —

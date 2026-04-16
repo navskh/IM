@@ -460,7 +460,12 @@ const NoteEditor = forwardRef<ReactCodeMirrorRef, NoteEditorProps>(function Note
     createLocalCompletionPlugin(corpusRef),
     Prec.highest(keymap.of([
       { key: 'Tab', run: acceptGhost },
-      { key: 'Escape', run: dismissGhost },
+      { key: 'Escape', run: (view) => {
+        if (dismissGhost(view)) return true;
+        // No ghost → blur editor so global shortcuts (B, N, T, F, etc.) work
+        view.contentDOM.blur();
+        return true;
+      }},
       { key: 'Enter', run: continueList },
       { key: 'Mod-Enter', run: toggleCheckbox },
       { key: 'Mod-Shift-Enter', run: tableAddRow },
