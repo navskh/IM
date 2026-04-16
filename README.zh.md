@@ -2,6 +2,8 @@
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | **中文**
 
+> **v1.8+**: 运行 `im start` 时自动检查并安装最新版本。旧版本用户请先执行 `npm install -g idea-manager@latest`。
+
 > 将自由头脑风暴转化为结构化任务树和AI提示词
 
 面向开发者的本地优先任务管理工具。将想法组织成子项目和任务，为每个任务编写提示词，然后交给AI代理执行。内置MCP服务器支持AI代理自主执行。通过Git实现跨PC同步。

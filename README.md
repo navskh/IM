@@ -2,6 +2,8 @@
 
 **English** | [한국어](README.ko.md) | [日本語](README.ja.md) | [中文](README.zh.md)
 
+> **v1.8+ users**: `im start` now auto-updates on boot. If you're on an older version, run `npm install -g idea-manager@latest` once — after that, every future release is applied automatically.
+
 > Turn free-form brainstorming into structured task trees with AI-generated prompts.
 
 A local-first task management tool for developers. Organize ideas into workspaces and projects, refine prompts for each task, and hand them off to AI agents. Built-in MCP Server enables autonomous AI agent execution. Cross-PC sync via Git.
@@ -15,7 +17,7 @@ npm install -g idea-manager
 im start
 ```
 
-Opens a native-like app window (Chrome/Edge `--app` mode). First run builds automatically.
+Opens a native-like app window (Chrome/Edge `--app` mode). First run builds automatically. From v1.8.0, `im start` checks npm on boot and auto-upgrades when a newer version is available (`IM_NO_AUTO_UPDATE=1` to opt out).
 
 ## Core Workflow
 
