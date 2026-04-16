@@ -500,10 +500,10 @@ const NoteEditor = forwardRef<ReactCodeMirrorRef, NoteEditorProps>(function Note
       '.cm-activeLineGutter': { backgroundColor: 'transparent' },
       '.cm-line': { backgroundColor: 'transparent' },
       '.cm-selectionLayer .cm-selectionBackground, .cm-content ::selection, ::selection': {
-        backgroundColor: 'hsl(var(--primary) / 0.25)',
+        backgroundColor: 'hsl(var(--primary) / 0.12)',
       },
       '&.cm-focused .cm-selectionBackground': {
-        backgroundColor: 'hsl(var(--primary) / 0.3)',
+        backgroundColor: 'hsl(var(--primary) / 0.15)',
       },
       '.cm-cursor, .cm-dropCursor': {
         borderLeftColor: 'hsl(var(--primary))',
@@ -539,7 +539,7 @@ const NoteEditor = forwardRef<ReactCodeMirrorRef, NoteEditorProps>(function Note
       '.tok-list': { color: 'hsl(var(--accent))' },
       '.tok-quote': { color: 'hsl(var(--muted-foreground))', fontStyle: 'italic' },
       '.tok-comment, .tok-meta': { color: 'hsl(var(--muted-foreground))' },
-    }, { dark: true }),
+    }),
   ], [onOpenCommand]);
 
   return (
