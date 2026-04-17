@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTabContext } from '@/components/tabs/TabContext';
+import { mod } from '@/lib/platform';
 import type { IProject, ISubProject, ITask } from '@/types';
 
 interface ProjectWithSubs extends IProject {
@@ -146,7 +147,7 @@ export default function QuickCapture() {
       >
         <div className="flex items-center justify-between">
           <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">빠른 태스크 캡처</div>
-          <span className="text-[10px] text-muted-foreground/70 px-1.5 py-0.5 border border-border rounded">⌘N · Esc</span>
+          <span className="text-[10px] text-muted-foreground/70 px-1.5 py-0.5 border border-border rounded">{mod()}N · Esc</span>
         </div>
 
         <div className="grid grid-cols-2 gap-2">

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { ITask, TaskStatus, ItemPriority } from '@/types';
+import { mod } from '@/lib/platform';
 import StatusFlow from './StatusFlow';
 import TaskChat from './TaskChat';
 import NoteEditor, { getPromotableLine } from './NoteEditor';
@@ -432,11 +433,11 @@ export default function TaskDetail({
 
           <button
             onClick={openPalette}
-            title="AI 명령 (⌘K)"
+            title={`AI 명령 (${mod()}K)`}
             className="text-xs px-2 py-0.5 rounded transition-colors border border-border
                        text-muted-foreground hover:text-foreground hover:border-muted-foreground"
           >
-            ⌘K
+            {mod()}K
           </button>
           <button
             onClick={copyAsPrompt}
@@ -525,7 +526,7 @@ export default function TaskDetail({
         <div className="px-4 pt-2 pb-1 flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Note</span>
           <span className="text-[10px] text-muted-foreground/60">
-            Tab 제안 수락 · ⌘K AI 명령 · 자동 저장
+            Tab 제안 수락 · {mod()}K AI 명령 · 자동 저장
           </span>
         </div>
         <div className="flex-1 min-h-0">

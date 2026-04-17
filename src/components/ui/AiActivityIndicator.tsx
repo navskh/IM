@@ -2,19 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { useAiActivity } from '@/hooks/useAiActivity';
+import { mod } from '@/lib/platform';
 
 function elapsed(startedAt: number): string {
   const s = Math.floor((Date.now() - startedAt) / 1000);
   return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m${s % 60}s`;
 }
 
-const TYPE_LABEL: Record<string, string> = {
-  refine: '⌘K Refine',
-  'task-chat': 'Note Assistant',
-  'project-advisor': 'Project Advisor',
-  'global-advisor': 'Global Advisor',
-  watch: 'Watch',
-};
+function typeLabel(t: string): string {
+  switch (t) {
+    case 'refine': return `${mod()}K Refine`;
+    case 'task-chat': return 'Note Assistant';
+    case 'project-advisor': return 'Project Advisor';
+    case 'global-advisor': return 'Global Advisor';
+    case 'watch': return 'Watch';
+    default: return t;
+  }
+}
 
 export default function AiActivityIndicator() {
   const activities = useAiActivity();
@@ -53,7 +57,7 @@ export default function AiActivityIndicator() {
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-warning animate-pulse flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="text-foreground truncate">{a.label}</div>
-                  <div className="text-muted-foreground/70">{TYPE_LABEL[a.type] ?? a.type}</div>
+                  <div className="text-muted-foreground/70">{typeLabel(a.type)}</div>
                 </div>
                 <span className="text-muted-foreground font-mono flex-shrink-0">{elapsed(a.startedAt)}</span>
               </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import AdvisorChat from './AdvisorChat';
+import { mod } from '@/lib/platform';
 
 export default function GlobalAdvisorLayer() {
   const [open, setOpen] = useState(false);
@@ -23,7 +24,7 @@ export default function GlobalAdvisorLayer() {
     <AdvisorChat
       basePath="/api/global-advisor"
       title="Global Advisor"
-      shortcutHint="⌘J"
+      shortcutHint={`${mod()}J`}
       placeholder="전체 워크스페이스에 대해 물어보세요…"
       emptyIcon="🌐"
       emptyHints={[

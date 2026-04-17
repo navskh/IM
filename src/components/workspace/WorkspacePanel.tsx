@@ -12,6 +12,7 @@ import GitSyncResultsModal from '@/components/dashboard/GitSyncResultsModal';
 import FileTreeDrawer from '@/components/ui/FileTreeDrawer';
 import AutoDistributeModal from '@/components/ui/AutoDistributeModal';
 import ProjectAdvisor from '@/components/workspace/ProjectAdvisor';
+import { mod } from '@/lib/platform';
 import type { ISubProject, ITask, TaskStatus, ISubProjectWithStats, IGitSyncResult } from '@/types';
 
 interface IProject {
@@ -491,7 +492,7 @@ export default function WorkspacePanel({
                 ? 'bg-primary/15 text-primary border-primary/30'
                 : 'bg-muted hover:bg-card-hover text-muted-foreground border-border'
             }`}
-            title="프로젝트 어드바이저 (⌘L)">
+            title={`프로젝트 어드바이저 (${mod()}L)`}>
             Advisor
           </button>
           {project.project_path ? (

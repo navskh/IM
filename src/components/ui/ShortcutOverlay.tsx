@@ -1,41 +1,42 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { fmtShortcut } from '@/lib/platform';
 
 const SECTIONS: { title: string; shortcuts: { keys: string; desc: string }[] }[] = [
   {
     title: '전역',
     shortcuts: [
-      { keys: '⌘P', desc: '전역 검색' },
-      { keys: '⌘N', desc: '빠른 태스크 생성' },
-      { keys: '⌘M', desc: '전역 메모 (Quick Memo)' },
-      { keys: '⌘J', desc: '전역 AI 어드바이저' },
+      { keys: 'Mod-P', desc: '전역 검색' },
+      { keys: 'Mod-N', desc: '빠른 태스크 생성' },
+      { keys: 'Mod-M', desc: '전역 메모 (Quick Memo)' },
+      { keys: 'Mod-J', desc: '전역 AI 어드바이저' },
       { keys: '?', desc: '이 도움말' },
     ],
   },
   {
     title: '워크스페이스',
     shortcuts: [
-      { keys: '⌘L', desc: 'Project Advisor 열기/닫기' },
+      { keys: 'Mod-L', desc: 'Project Advisor 열기/닫기' },
       { keys: 'B', desc: '브레인스토밍 패널 토글' },
       { keys: 'N', desc: '새 프로젝트 추가' },
       { keys: 'T', desc: '새 태스크 추가' },
-      { keys: '⌘1', desc: '상태 → Idea' },
-      { keys: '⌘2', desc: '상태 → Doing' },
-      { keys: '⌘3', desc: '상태 → Done' },
-      { keys: '⌘4', desc: '상태 → Problem' },
+      { keys: 'Mod-1', desc: '상태 → Idea' },
+      { keys: 'Mod-2', desc: '상태 → Doing' },
+      { keys: 'Mod-3', desc: '상태 → Done' },
+      { keys: 'Mod-4', desc: '상태 → Problem' },
     ],
   },
   {
     title: '노트 에디터',
     shortcuts: [
-      { keys: '⌘K', desc: 'AI 명령 팔레트' },
-      { keys: '⌘⇧T', desc: '체크박스/불릿 → 태스크 승격' },
-      { keys: '⌘⇧F', desc: '포커스 모드 (노트 풀스크린)' },
+      { keys: 'Mod-K', desc: 'AI 명령 팔레트' },
+      { keys: 'Mod-Shift-T', desc: '체크박스/불릿 → 태스크 승격' },
+      { keys: 'Mod-Shift-F', desc: '포커스 모드 (노트 풀스크린)' },
       { keys: '/', desc: '슬래시 명령 (/todo, /table, /code…)' },
-      { keys: '⌘↵', desc: '체크박스 토글 [ ] ↔ [x]' },
-      { keys: '⌘⇧↵', desc: '테이블 행 추가' },
-      { keys: '⌘⇧⌫', desc: '테이블 행 삭제' },
+      { keys: 'Mod-Enter', desc: '체크박스 토글 [ ] ↔ [x]' },
+      { keys: 'Mod-Shift-Enter', desc: '테이블 행 추가' },
+      { keys: 'Mod-Shift-Backspace', desc: '테이블 행 삭제' },
       { keys: 'Tab', desc: '고스트 자동완성 수락' },
       { keys: 'Esc', desc: '고스트 해제' },
       { keys: 'Enter', desc: '리스트 자동 이어쓰기' },
@@ -91,7 +92,7 @@ export default function ShortcutOverlay() {
                 {section.shortcuts.map((s) => (
                   <div key={s.keys} className="contents">
                     <kbd className="text-xs font-mono px-1.5 py-0.5 rounded bg-muted border border-border text-foreground text-right whitespace-nowrap">
-                      {s.keys}
+                      {fmtShortcut(s.keys)}
                     </kbd>
                     <span className="text-xs text-muted-foreground self-center">{s.desc}</span>
                   </div>

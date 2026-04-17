@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { mod } from '@/lib/platform';
 
 export default function GlobalMemoLayer() {
   const [open, setOpen] = useState(false);
@@ -74,7 +75,7 @@ export default function GlobalMemoLayer() {
         <div className="px-4 py-2.5 border-b border-border flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-foreground">Quick Memo</span>
-            <span className="text-[10px] text-muted-foreground/60">⌘M</span>
+            <span className="text-[10px] text-muted-foreground/60">{mod()}M</span>
           </div>
           <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground text-lg leading-none">×</button>
         </div>

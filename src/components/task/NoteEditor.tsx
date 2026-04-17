@@ -7,6 +7,7 @@ import { EditorView, Decoration, keymap, ViewPlugin, WidgetType, type Decoration
 import { EditorState, StateEffect, StateField, Prec, RangeSetBuilder } from '@codemirror/state';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import { autocompletion, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete';
+import { mod, shift, enterKey, backspaceKey } from '@/lib/platform';
 import { tags as t } from '@lezer/highlight';
 
 // ─────────────────────────────────────────────────────────────
@@ -408,8 +409,8 @@ const SLASH_COMMANDS: { label: string; detail: string; insert: string }[] = [
   { label: '/link', detail: '링크', insert: '[텍스트](url)' },
   { label: '/bold', detail: '굵게', insert: '****' },
   { label: '/details', detail: '접기/펼치기', insert: '<details>\n<summary>제목</summary>\n\n내용\n\n</details>' },
-  { label: '/addrow', detail: '테이블 행 추가 (⌘⇧↵)', insert: '' },
-  { label: '/delrow', detail: '테이블 행 삭제 (⌘⇧⌫)', insert: '' },
+  { label: '/addrow', detail: `테이블 행 추가 (${mod()}${shift()}${enterKey()})`, insert: '' },
+  { label: '/delrow', detail: `테이블 행 삭제 (${mod()}${shift()}${backspaceKey()})`, insert: '' },
 ];
 
 function slashCompletion(context: CompletionContext): CompletionResult | null {

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useTabContext } from '@/components/tabs/TabContext';
+import { mod } from '@/lib/platform';
 import type { ISearchResult } from '@/app/api/search/route';
 
 export default function GlobalSearch() {
@@ -95,7 +96,7 @@ export default function GlobalSearch() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKey}
-            placeholder="태스크 · 프로젝트 · 워크스페이스 검색… (⌘P)"
+            placeholder={`태스크 · 프로젝트 · 워크스페이스 검색… (${mod()}P)`}
             className="flex-1 bg-transparent text-sm text-foreground focus:outline-none"
           />
           <span className="text-[10px] text-muted-foreground/70 px-1.5 py-0.5 border border-border rounded">

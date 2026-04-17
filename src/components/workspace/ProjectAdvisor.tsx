@@ -1,6 +1,7 @@
 'use client';
 
 import AdvisorChat from '@/components/advisor/AdvisorChat';
+import { mod } from '@/lib/platform';
 
 export default function ProjectAdvisor({
   projectId,
@@ -15,7 +16,7 @@ export default function ProjectAdvisor({
     <AdvisorChat
       basePath={`/api/projects/${projectId}/advisor`}
       title="Project Advisor"
-      shortcutHint="⌘L"
+      shortcutHint={`${mod()}L`}
       placeholder="프로젝트에 대해 무엇이든 물어보세요…"
       emptyIcon="🧭"
       emptyHints={[
