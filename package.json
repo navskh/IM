@@ -1,6 +1,6 @@
 {
   "name": "idea-manager",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "description": "AI-powered idea & task manager for developers. Brainstorm → structured tasks → AI agent execution. CodeMirror editor with slash commands, MCP Server, Claude/Gemini/Codex support. Local-first SQLite, cross-PC Git sync.",
   "keywords": [
     "idea-manager",
@@ -42,6 +42,7 @@
     "bin/",
     "src/",
     "public/",
+    ".next/BUILD_ID",
     ".next/server/",
     ".next/static/",
     ".next/required-server-files.json",
@@ -55,6 +56,7 @@
     ".next/package.json",
     "!.next/**/*.nft.json",
     "next.config.mjs",
+    "next-env.d.ts",
     "tsconfig.json",
     "postcss.config.mjs",
     "package.json"
