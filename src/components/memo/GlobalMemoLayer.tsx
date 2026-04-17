@@ -34,9 +34,24 @@ export default function GlobalMemoLayer() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: value }),
+      }).then(() => {
+        window.dispatchEvent(new Event('global-memo-updated'));
       }).catch(() => {});
     }, 600);
   }, []);
+
+  // Sync when other memo instance saves
+  useEffect(() => {
+    const onSync = () => {
+      if (!open) return;
+      fetch('/api/global-memo')
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.content !== undefined) setContent(d.content); })
+        .catch(() => {});
+    };
+    window.addEventListener('global-memo-updated', onSync);
+    return () => window.removeEventListener('global-memo-updated', onSync);
+  }, [open]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const v = e.target.value;

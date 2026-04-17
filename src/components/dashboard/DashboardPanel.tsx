@@ -96,6 +96,17 @@ export default function DashboardPanel() {
     if (savedTab) setTab(savedTab);
   }, [fetchData]);
 
+  // Sync memo when another instance (⌘M layer) saves
+  useEffect(() => {
+    const onSync = () => {
+      fetch('/api/global-memo').then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.content !== undefined) setMemoContent(d.content); })
+        .catch(() => {});
+    };
+    window.addEventListener('global-memo-updated', onSync);
+    return () => window.removeEventListener('global-memo-updated', onSync);
+  }, []);
+
   const handleMemoChange = (value: string) => {
     setMemoContent(value);
     if (memoSaveTimer.current) clearTimeout(memoSaveTimer.current);
@@ -104,6 +115,8 @@ export default function DashboardPanel() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: value }),
+      }).then(() => {
+        window.dispatchEvent(new Event('global-memo-updated'));
       });
     }, 500);
   };

@@ -136,9 +136,9 @@ program
       nextCli = path.join(PKG_ROOT, 'node_modules', 'next', 'dist', 'bin', 'next');
     }
 
-    // Build if not already built
-    const buildDir = path.join(PKG_ROOT, '.next');
-    if (!fs.existsSync(buildDir)) {
+    // Build if not already built (check BUILD_ID, not just .next dir existence)
+    const buildMarker = path.join(PKG_ROOT, '.next', 'BUILD_ID');
+    if (!fs.existsSync(buildMarker)) {
       console.log('\n  IM - First run: building... (this may take a minute)\n');
       const buildResult = spawn(process.execPath, [nextCli, 'build'], {
         cwd: PKG_ROOT,
