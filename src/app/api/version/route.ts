@@ -8,11 +8,15 @@ export const dynamic = 'force-dynamic';
 // process.cwd() may differ when launched via the CLI, so we resolve
 // relative to this file's runtime location by walking up.
 function readInstalledVersion(): string {
+  // Try multiple candidates because the process cwd varies by how we launch:
+  // - `im start` standalone: cwd = <PKG>/.next/standalone/
+  // - `im start` legacy:     cwd = <PKG>/
+  // - `npm run dev`:         cwd = <PKG>/
+  const cwd = process.cwd();
   const candidates = [
-    // Running from built standalone output
-    join(process.cwd(), 'package.json'),
-    // Running from source (dev)
-    join(process.cwd(), '..', 'package.json'),
+    join(cwd, 'package.json'),               // legacy / dev
+    join(cwd, '..', '..', 'package.json'),   // standalone → PKG_ROOT
+    join(cwd, '..', 'package.json'),         // fallback one-level-up
   ];
   for (const p of candidates) {
     try {

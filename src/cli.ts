@@ -149,52 +149,28 @@ program
       return;
     }
 
-    // Resolve next CLI
-    let nextCli: string;
-    try {
-      nextCli = require.resolve('next/dist/bin/next', { paths: [PKG_ROOT] });
-    } catch {
-      nextCli = path.join(PKG_ROOT, 'node_modules', 'next', 'dist', 'bin', 'next');
-    }
-    if (!fs.existsSync(nextCli)) {
-      console.error('\n  ⚠ Next.js 바이너리를 찾을 수 없습니다. 의존성이 손상된 듯합니다.');
+    // Use pre-built standalone bundle — self-contained, no absolute paths,
+    // works from any install location on any OS.
+    const standaloneServer = path.join(PKG_ROOT, '.next', 'standalone', 'server.js');
+    if (!fs.existsSync(standaloneServer)) {
+      console.error('\n  ⚠ Pre-built standalone 번들을 찾을 수 없습니다.');
       console.error(`    재설치: npm install -g idea-manager@latest\n`);
       process.exit(1);
-    }
-
-    // Build if not already built (check BUILD_ID, not just .next dir existence)
-    const buildMarker = path.join(PKG_ROOT, '.next', 'BUILD_ID');
-    if (!fs.existsSync(buildMarker)) {
-      console.log('\n  IM - First run: building... (this may take a minute)\n');
-      const buildResult = spawn(process.execPath, [nextCli, 'build', '--webpack'], {
-        cwd: PKG_ROOT,
-        stdio: 'inherit',
-        env: { ...process.env, NODE_ENV: 'production' },
-      });
-      try {
-        await new Promise<void>((resolve, reject) => {
-          buildResult.on('exit', (code) => {
-            if (code !== 0) reject(new Error(`Build failed with code ${code}`));
-            else resolve();
-          });
-          buildResult.on('error', reject);
-        });
-      } catch (err) {
-        console.error(`\n  ⚠ 빌드 실패: ${err instanceof Error ? err.message : String(err)}`);
-        console.error(`    글로벌 설치 시 devDependencies가 빠졌을 수 있습니다.`);
-        console.error(`    시도: cd "${PKG_ROOT}" && npm install\n`);
-        process.exit(1);
-      }
     }
 
     console.log(`\n  IM - Idea Manager`);
     console.log(`  Starting on http://localhost:${port}\n`);
 
-    // Run production server (next start)
-    const child = spawn(process.execPath, [nextCli, 'start', '-p', port], {
-      cwd: PKG_ROOT,
+    // Standalone server uses PORT env + resolves files relative to itself.
+    const child = spawn(process.execPath, [standaloneServer], {
+      cwd: path.dirname(standaloneServer),
       stdio: 'inherit',
-      env: { ...process.env, NODE_ENV: 'production' },
+      env: {
+        ...process.env,
+        NODE_ENV: 'production',
+        PORT: String(port),
+        HOSTNAME: '127.0.0.1',
+      },
     });
 
     child.on('error', (err) => {
