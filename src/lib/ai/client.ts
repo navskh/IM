@@ -37,6 +37,7 @@ export function runAgent(
       cwd: options?.cwd || process.cwd(),
       stdio: ['pipe', 'pipe', 'pipe'],
       shell: process.platform === 'win32',
+      windowsHide: true,
       env,
     });
 
@@ -50,9 +51,26 @@ export function runAgent(
       }, options.timeoutMs);
     }
 
-    // Write prompt to stdin and close it
-    proc.stdin?.write(prompt);
-    proc.stdin?.end();
+    // Spawn failure (e.g., binary not found) → reject instead of hanging.
+    proc.on('error', (err) => {
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === 'ENOENT') {
+        reject(new Error(`${config.name} CLI not found on PATH. Install it first.`));
+      } else {
+        reject(new Error(`${config.name} CLI error: ${err.message}`));
+      }
+    });
+
+    // Write prompt to stdin and close it. Wrap in try/catch for broken pipe cases.
+    try {
+      proc.stdin?.write(prompt, 'utf8');
+      proc.stdin?.end();
+    } catch (err) {
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      reject(new Error(`Failed to pipe prompt to ${config.name}: ${(err as Error).message}`));
+      return;
+    }
 
     let buffer = '';
     let resultText = '';
@@ -101,10 +119,6 @@ export function runAgent(
 
     proc.stderr?.on('data', (chunk: Buffer) => {
       stderrText += chunk.toString();
-    });
-
-    proc.on('error', (err) => {
-      reject(new Error(`${config.name} CLI error: ${err.message}`));
     });
 
     proc.on('exit', (code, signal) => {

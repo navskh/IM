@@ -10,7 +10,12 @@ function formatDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function sendMacNotification(title: string, message: string) {
+function sendNotification(title: string, message: string) {
+  // macOS native notification via osascript. Other platforms get a console log.
+  if (process.platform !== 'darwin') {
+    console.log(`[${title}] ${message}`);
+    return;
+  }
   const escaped = message.replace(/"/g, '\\"').replace(/\n/g, '\\n');
   const script = `display notification "${escaped}" with title "${title}"`;
   exec(`osascript -e '${script}'`, (err) => {
@@ -60,7 +65,7 @@ async function checkMorningNotification() {
     if (activeTasks.count > 0) lines.push(`진행 중: ${activeTasks.count}개`);
     if (problemTasks.count > 0) lines.push(`문제: ${problemTasks.count}개`);
 
-    sendMacNotification('IM - 오늘의 할 일', lines.join('\n'));
+    sendNotification('IM - 오늘의 할 일', lines.join('\n'));
     lastNotifiedDate = today;
   } catch (err) {
     console.error('[Scheduler] error:', err);
@@ -71,8 +76,9 @@ export function initScheduler() {
   if (initialized) return;
   initialized = true;
 
-  // Check every minute
+  // Check every minute. unref() so it doesn't pin the event loop for MCP stdio mode.
   timer = setInterval(checkMorningNotification, 60 * 1000);
+  timer.unref?.();
 
   // Also check immediately on startup
   checkMorningNotification();

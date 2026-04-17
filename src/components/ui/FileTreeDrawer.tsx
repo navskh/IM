@@ -173,7 +173,7 @@ export default function FileTreeDrawer({
     });
   };
 
-  const dirName = rootPath.split('/').pop() || rootPath;
+  const dirName = rootPath.split(/[\\/]/).filter(Boolean).pop() || rootPath;
 
   return (
     <div

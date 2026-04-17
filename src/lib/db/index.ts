@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import { getDbPath } from '../utils/paths';
 import { initSchema } from './schema';
 import { initScheduler } from '../scheduler';
@@ -20,7 +21,17 @@ class DatabaseWrapper {
   private save() {
     if (!this.dirty) return;
     const data = this.db.export();
-    fs.writeFileSync(this.dbPath, Buffer.from(data));
+    // Atomic write: write to temp file, then rename. Prevents corruption
+    // if the process dies mid-write.
+    const tmpPath = `${this.dbPath}.tmp-${process.pid}`;
+    try {
+      fs.writeFileSync(tmpPath, Buffer.from(data));
+      fs.renameSync(tmpPath, this.dbPath);
+    } catch (err) {
+      // Best-effort cleanup of orphan tmp
+      try { fs.unlinkSync(tmpPath); } catch { /* ignore */ }
+      throw err;
+    }
     this.dirty = false;
   }
 
@@ -144,12 +155,25 @@ async function initAsync(): Promise<DatabaseWrapper> {
 
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const initSqlJs = require('sql.js/dist/sql-wasm.js');
-  // In Node, sql.js resolves the .wasm file relative to its own __dirname
-  // (node_modules/sql.js/dist). `serverExternalPackages: ['sql.js']` keeps
-  // the package unbundled so that resolution works.
-  const SQL = await initSqlJs();
+  // Explicitly locate the .wasm next to sql-wasm.js — otherwise sql.js falls
+  // back to `__dirname` which can be wrong when invoked from MCP stdio mode
+  // (cwd may differ from PKG_ROOT).
+  let wasmDir: string;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    wasmDir = path.dirname(require.resolve('sql.js/dist/sql-wasm.js'));
+  } catch {
+    wasmDir = '';
+  }
+  const SQL = await initSqlJs(wasmDir ? {
+    locateFile: (file: string) => path.join(wasmDir, file),
+  } : undefined);
 
   const dbPath = getDbPath();
+  // Ensure parent directory exists (first-run safety on fresh installs).
+  const dbDir = path.dirname(dbPath);
+  if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
+
   let db;
   if (fs.existsSync(dbPath)) {
     const fileBuffer = fs.readFileSync(dbPath);

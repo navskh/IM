@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { ensureDb } from './db';
+import { ensureDb, getDb } from './db';
 import { runAgent } from './ai/client';
 import { listProjects, getProject } from './db/queries/projects';
 import { getSubProject } from './db/queries/sub-projects';
@@ -101,7 +101,7 @@ async function executeTask(task: ITask, project: IProject, options: WatcherOptio
     const content = `[진행 중]\n${accumulated}`;
     if (progressMsgId) {
       // Update existing progress message
-      const { getDb } = require('./db/index');
+      // getDb imported at top
       const db = getDb();
       db.prepare('UPDATE task_conversations SET content = ? WHERE id = ?').run(content, progressMsgId);
     } else {
@@ -135,7 +135,7 @@ async function executeTask(task: ITask, project: IProject, options: WatcherOptio
 
     // Replace progress message with final result
     if (progressMsgId) {
-      const { getDb } = require('./db/index');
+      // getDb imported at top
       const db = getDb();
       db.prepare('UPDATE task_conversations SET content = ? WHERE id = ?').run(result || '(no output)', progressMsgId);
     } else {
@@ -152,7 +152,7 @@ async function executeTask(task: ITask, project: IProject, options: WatcherOptio
 
     // Replace progress message with error
     if (progressMsgId) {
-      const { getDb } = require('./db/index');
+      // getDb imported at top
       const db = getDb();
       db.prepare('UPDATE task_conversations SET content = ? WHERE id = ?').run(`[error] ${errorMsg}`, progressMsgId);
     } else {

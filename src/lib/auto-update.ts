@@ -1,5 +1,5 @@
-import { spawn } from 'child_process';
-import { readFileSync } from 'fs';
+import { spawn, execSync } from 'child_process';
+import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
 function readInstalledVersion(pkgRoot: string): string {
@@ -120,9 +120,28 @@ export async function maybeAutoUpdate(pkgRoot: string): Promise<AutoUpdateResult
  * replaces the old copy loaded in the current Node process. Sets
  * IM_NO_AUTO_UPDATE=1 on the child to prevent an update-respawn loop.
  */
+function resolveImBin(): string | null {
+  // After `npm install -g`, the im wrapper lives in npm's global bin.
+  try {
+    const prefix = execSync('npm prefix -g', { encoding: 'utf-8' }).trim();
+    // On Windows the wrapper is `<prefix>\im.cmd`; on POSIX it's `<prefix>/bin/im`.
+    const candidates = process.platform === 'win32'
+      ? [join(prefix, 'im.cmd'), join(prefix, 'im.ps1'), join(prefix, 'im')]
+      : [join(prefix, 'bin', 'im')];
+    for (const c of candidates) {
+      if (existsSync(c)) return c;
+    }
+  } catch { /* fall through */ }
+  return null;
+}
+
 export function respawnSelf(): void {
   const args = process.argv.slice(2);
-  const child = spawn('im', args, {
+  const binPath = resolveImBin();
+  const cmd = binPath ?? 'im';
+  // On Windows, .cmd wrappers require shell:true (cmd.exe interprets them).
+  // On POSIX, prefer shell:false with an absolute path for reliability.
+  const child = spawn(cmd, args, {
     stdio: 'inherit',
     shell: process.platform === 'win32',
     env: { ...process.env, IM_NO_AUTO_UPDATE: '1' },

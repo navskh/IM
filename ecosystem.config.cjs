@@ -1,9 +1,11 @@
+const path = require('path');
+
 module.exports = {
   apps: [{
     name: 'idea-manager',
     script: 'npm',
     args: 'start -- -p 3456',
-    cwd: '/Users/young/Toy/idea-manager',
+    cwd: path.resolve(__dirname),
     env: {
       NODE_ENV: 'production',
       FORCE_COLOR: '0',

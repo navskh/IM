@@ -1,5 +1,13 @@
 #!/usr/bin/env node
 
+// Force UTF-8 output on Windows so Korean strings don't garble in cp949 terminals.
+if (process.platform === 'win32') {
+  try {
+    process.stdout.setDefaultEncoding?.('utf8');
+    process.stderr.setDefaultEncoding?.('utf8');
+  } catch { /* non-critical */ }
+}
+
 import { Command } from 'commander';
 import { ensureDb } from './lib/db';
 import { startMcpServer } from './lib/mcp/server';
@@ -12,6 +20,7 @@ import { startWatcher } from './lib/watcher';
 import { syncInit, syncPush, syncPull, syncStatus } from './lib/sync/index';
 import { maybeAutoUpdate, respawnSelf } from './lib/auto-update';
 import { spawn } from 'child_process';
+import { readFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -41,6 +50,9 @@ async function openAsApp(url: string) {
         ]
       : platform === 'win32'
         ? [
+          { bin: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', args: [`--app=${url}`] },
+          { bin: 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe', args: [`--app=${url}`] },
+          { bin: 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe', args: [`--app=${url}`] },
           { bin: 'chrome', args: [`--app=${url}`] },
           { bin: 'msedge', args: [`--app=${url}`] },
         ]
@@ -51,7 +63,9 @@ async function openAsApp(url: string) {
         ];
 
   for (const browser of browsers) {
-    if (platform === 'darwin' && !fs.existsSync(browser.bin)) continue;
+    // Skip absolute paths that don't exist (macOS .app, Windows Program Files)
+    const isAbsolute = path.isAbsolute(browser.bin);
+    if (isAbsolute && !fs.existsSync(browser.bin)) continue;
 
     try {
       const child = spawnChild(browser.bin, browser.args, {
@@ -73,10 +87,17 @@ async function openAsApp(url: string) {
 
 const program = new Command();
 
+function readPkgVersion(): string {
+  try {
+    const pkg = JSON.parse(readFileSync(path.join(PKG_ROOT, 'package.json'), 'utf8')) as { version?: string };
+    return pkg.version ?? '0.0.0';
+  } catch { return '0.0.0'; }
+}
+
 program
   .name('im')
-  .description('Idea Manager v2 - Brainstorming to structured tasks with prompts')
-  .version('0.2.0');
+  .description('Idea Manager - Brainstorming to structured tasks with prompts')
+  .version(readPkgVersion());
 
 program
   .command('mcp')
@@ -135,23 +156,35 @@ program
     } catch {
       nextCli = path.join(PKG_ROOT, 'node_modules', 'next', 'dist', 'bin', 'next');
     }
+    if (!fs.existsSync(nextCli)) {
+      console.error('\n  ⚠ Next.js 바이너리를 찾을 수 없습니다. 의존성이 손상된 듯합니다.');
+      console.error(`    재설치: npm install -g idea-manager@latest\n`);
+      process.exit(1);
+    }
 
     // Build if not already built (check BUILD_ID, not just .next dir existence)
     const buildMarker = path.join(PKG_ROOT, '.next', 'BUILD_ID');
     if (!fs.existsSync(buildMarker)) {
       console.log('\n  IM - First run: building... (this may take a minute)\n');
-      const buildResult = spawn(process.execPath, [nextCli, 'build'], {
+      const buildResult = spawn(process.execPath, [nextCli, 'build', '--webpack'], {
         cwd: PKG_ROOT,
         stdio: 'inherit',
         env: { ...process.env, NODE_ENV: 'production' },
       });
-      await new Promise<void>((resolve, reject) => {
-        buildResult.on('exit', (code) => {
-          if (code !== 0) reject(new Error(`Build failed with code ${code}`));
-          else resolve();
+      try {
+        await new Promise<void>((resolve, reject) => {
+          buildResult.on('exit', (code) => {
+            if (code !== 0) reject(new Error(`Build failed with code ${code}`));
+            else resolve();
+          });
+          buildResult.on('error', reject);
         });
-        buildResult.on('error', reject);
-      });
+      } catch (err) {
+        console.error(`\n  ⚠ 빌드 실패: ${err instanceof Error ? err.message : String(err)}`);
+        console.error(`    글로벌 설치 시 devDependencies가 빠졌을 수 있습니다.`);
+        console.error(`    시도: cd "${PKG_ROOT}" && npm install\n`);
+        process.exit(1);
+      }
     }
 
     console.log(`\n  IM - Idea Manager`);

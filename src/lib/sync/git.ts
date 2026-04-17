@@ -2,24 +2,26 @@ import { execFile } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
-function quoteArg(arg: string): string {
-  // Quote args with spaces for shell mode
-  if (!arg.includes(' ') && !arg.includes('"')) return arg;
-  if (process.platform === 'win32') {
-    // cmd.exe uses "" to escape quotes
-    return `"${arg.replace(/"/g, '""')}"`;
-  }
-  return `"${arg.replace(/"/g, '\\"')}"`;
-}
+// Longer timeout for network-heavy operations (clone/push/pull over slow links).
+const NETWORK_CMDS = new Set(['clone', 'push', 'pull', 'fetch']);
 
 function exec(cmd: string, args: string[], cwd?: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const quotedArgs = args.map(quoteArg);
-    execFile(cmd, quotedArgs, { cwd, shell: true, timeout: 60000 }, (err, stdout, stderr) => {
+    const isNetwork = args.some(a => NETWORK_CMDS.has(a));
+    const timeout = isNetwork ? 300000 : 30000; // 5min / 30s
+    // shell: false — Node handles arg escaping natively on all platforms.
+    // On Windows, execFile still resolves `.cmd`/`.bat` via PATHEXT for known binaries.
+    execFile(cmd, args, {
+      cwd,
+      timeout,
+      shell: process.platform === 'win32',
+      windowsHide: true,
+      maxBuffer: 10 * 1024 * 1024,
+    }, (err, stdout, stderr) => {
       if (err) {
-        reject(new Error(stderr?.trim() || err.message));
+        reject(new Error(stderr?.toString().trim() || err.message));
       } else {
-        resolve(stdout.trim());
+        resolve(stdout.toString().trim());
       }
     });
   });
@@ -43,7 +45,8 @@ export function isGitRepo(dir: string): boolean {
 
 export async function ghCreateRepo(name: string): Promise<string> {
   // Create private repo and get URL
-  const result = await exec('gh', ['repo', 'create', name, '--private', '--confirm']);
+  // --confirm was removed in gh 2.x; repo is created non-interactively by default with name+flag
+  const result = await exec('gh', ['repo', 'create', name, '--private']);
   // Extract repo URL from output
   const urlMatch = result.match(/https:\/\/github\.com\/\S+/);
   if (urlMatch) return urlMatch[0];
