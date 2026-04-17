@@ -1,5 +1,6 @@
 # IM (Idea Manager)
 
+[![SafeSkill 20/100](https://img.shields.io/badge/SafeSkill-20%2F100_Blocked-red)](https://safeskill.dev/scan/navskh-im)
 **English** | [한국어](README.ko.md) | [日本語](README.ja.md) | [中文](README.zh.md)
 
 > **v1.8+ users**: `im start` now auto-updates on boot. If you're on an older version, run `npm install -g idea-manager@latest` once — after that, every future release is applied automatically.
