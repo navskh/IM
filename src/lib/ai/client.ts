@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { AGENTS } from './agents';
 import type { AgentType } from '../../types';
 
@@ -33,8 +34,14 @@ export function runAgent(
     const args = config.buildArgs({ streaming: useStreamJson, model: options?.model });
     const env = config.buildEnv();
 
+    // If a cwd was requested but doesn't exist on this machine (e.g. a Mac path
+    // synced to a Windows box), fall back to process.cwd() instead of failing
+    // with the opaque ENOENT that spawn throws.
+    const requestedCwd = options?.cwd;
+    const effectiveCwd = requestedCwd && existsSync(requestedCwd) ? requestedCwd : process.cwd();
+
     const proc = spawn(config.binary, args, {
-      cwd: options?.cwd || process.cwd(),
+      cwd: effectiveCwd,
       stdio: ['pipe', 'pipe', 'pipe'],
       shell: process.platform === 'win32',
       windowsHide: true,

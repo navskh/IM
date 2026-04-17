@@ -37,8 +37,10 @@ export async function POST(request: NextRequest) {
     }
     const aiMsg = addGlobalConversation('assistant', trimmedResponse);
     return NextResponse.json({ userMessage: userMsg, aiMessage: aiMsg });
-  } catch {
-    const errorMsg = addGlobalConversation('assistant', '(AI 호출에 실패했습니다.)');
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error('[global-advisor] AI call failed:', detail);
+    const errorMsg = addGlobalConversation('assistant', `⚠ AI 호출 실패: ${detail}\n\nClaude CLI가 설치되어 PATH에 있는지 확인하세요 (\`claude --version\`).`);
     return NextResponse.json({ userMessage: userMsg, aiMessage: errorMsg });
   }
 }

@@ -54,8 +54,10 @@ export async function POST(
     }
     const aiMsg = addProjectConversation(id, 'assistant', trimmedResponse);
     return NextResponse.json({ userMessage: userMsg, aiMessage: aiMsg });
-  } catch {
-    const errorMsg = addProjectConversation(id, 'assistant', '(AI 호출에 실패했습니다. 다시 시도해주세요.)');
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error('[advisor] AI call failed:', detail);
+    const errorMsg = addProjectConversation(id, 'assistant', `⚠ AI 호출 실패: ${detail}\n\n**체크리스트**\n- Claude CLI가 PATH에 있는가? (\`claude --version\` 확인)\n- 네트워크 연결 / 로그인 상태?\n- Windows라면 \`claude.cmd\`가 \`where claude\`로 찾아지는지?`);
     return NextResponse.json({ userMessage: userMsg, aiMessage: errorMsg });
   }
 }

@@ -72,8 +72,10 @@ ${brainstorm?.content ? `\nBrainstorming context:\n${brainstorm.content.slice(0,
     }
     const aiMsg = addTaskConversation(taskId, 'assistant', trimmed);
     return NextResponse.json({ userMessage: userMsg, aiMessage: aiMsg });
-  } catch {
-    const errorMsg = addTaskConversation(taskId, 'assistant', '(AI 호출에 실패했습니다. Claude CLI가 설치되어 있는지 확인해주세요.)');
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error('[task-chat] AI call failed:', detail);
+    const errorMsg = addTaskConversation(taskId, 'assistant', `⚠ AI 호출 실패: ${detail}\n\nClaude CLI가 설치되어 있고 PATH에 있는지 확인하세요 (\`claude --version\`).`);
     return NextResponse.json({ userMessage: userMsg, aiMessage: errorMsg });
   }
 }
