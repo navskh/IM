@@ -330,6 +330,41 @@ export default function DashboardPanel() {
           >
             Memo
           </button>
+          <label
+            className="px-3 py-2 text-sm border rounded-lg transition-colors cursor-pointer bg-muted hover:bg-card-hover text-muted-foreground border-border"
+            title="Import project JSON"
+          >
+            Import
+            <input
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (!file) return;
+                try {
+                  const text = await file.text();
+                  const payload = JSON.parse(text);
+                  const res = await fetch('/api/projects/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                  });
+                  if (res.ok) {
+                    const data = await res.json();
+                    await fetchData();
+                    openProject(data.project_id, data.project_name);
+                  } else {
+                    const err = await res.json().catch(() => ({ error: 'Import failed' }));
+                    alert(err.error || 'Import failed');
+                  }
+                } catch (err) {
+                  alert(err instanceof Error ? err.message : 'Invalid JSON file');
+                }
+              }}
+            />
+          </label>
           <button
             onClick={() => setShowForm(!showForm)}
             className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg
@@ -533,6 +568,13 @@ export default function DashboardPanel() {
                       <div className="flex items-center gap-2">
                         <button onClick={(e) => handleEditClick(project, e)}
                           className="text-xs text-muted-foreground hover:text-foreground transition-colors">Edit</button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); window.open(`/api/projects/${project.id}/export`, '_blank'); }}
+                          title="Export as JSON (TIMO-compatible)"
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          Export
+                        </button>
                         <button onClick={(e) => handleDeleteClick(project.id, e)}
                           className="text-xs text-muted-foreground hover:text-destructive transition-colors">Delete</button>
                       </div>
