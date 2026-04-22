@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db';
 import { ensureDb } from '@/lib/db';
 
 export interface ISearchResult {
-  type: 'task' | 'project' | 'sub-project';
+  type: 'task' | 'project' | 'sub-project' | 'brainstorm' | 'memo';
   projectId: string;
   projectName: string;
   subProjectId?: string;
@@ -39,6 +39,16 @@ interface SubProjectSearchRow {
   name: string;
   project_id: string;
   project_name: string;
+}
+
+interface BrainstormSearchRow {
+  project_id: string;
+  project_name: string;
+  content: string;
+}
+
+interface GlobalMemoSearchRow {
+  content: string;
 }
 
 function escapeLike(s: string): string {
@@ -103,6 +113,20 @@ export async function GET(request: NextRequest) {
     LIMIT 10
   `).all(like) as SubProjectSearchRow[];
 
+  const brainstormRows = db.prepare(`
+    SELECT b.project_id, p.name AS project_name, b.content
+    FROM brainstorms b
+    JOIN projects p ON p.id = b.project_id
+    WHERE b.content LIKE ? ESCAPE '\\'
+    LIMIT 10
+  `).all(like) as BrainstormSearchRow[];
+
+  const memoRows = db.prepare(`
+    SELECT content FROM global_memos
+    WHERE content LIKE ? ESCAPE '\\'
+    LIMIT 1
+  `).all(like) as GlobalMemoSearchRow[];
+
   const results: ISearchResult[] = [];
 
   for (const r of taskRows) {
@@ -141,6 +165,28 @@ export async function GET(request: NextRequest) {
       subProjectName: r.name,
       title: r.name,
       score: scoreMatch(r.name, '', q),
+    });
+  }
+
+  for (const r of brainstormRows) {
+    results.push({
+      type: 'brainstorm',
+      projectId: r.project_id,
+      projectName: r.project_name,
+      title: `${r.project_name} · Brainstorm`,
+      snippet: buildSnippet(r.content, q),
+      score: scoreMatch('', r.content, q),
+    });
+  }
+
+  for (const r of memoRows) {
+    results.push({
+      type: 'memo',
+      projectId: '',
+      projectName: 'Quick Memo',
+      title: 'Quick Memo',
+      snippet: buildSnippet(r.content, q),
+      score: scoreMatch('', r.content, q),
     });
   }
 

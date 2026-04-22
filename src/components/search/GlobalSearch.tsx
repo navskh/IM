@@ -12,7 +12,7 @@ export default function GlobalSearch() {
   const [idx, setIdx] = useState(0);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { openProject } = useTabContext();
+  const { openProject, setActiveTab } = useTabContext();
   const abortRef = useRef<AbortController | null>(null);
 
   // Global ⌘P / Ctrl+P shortcut (K is also acceptable in some editors;
@@ -62,9 +62,13 @@ export default function GlobalSearch() {
   }, [query, open]);
 
   const pick = useCallback((r: ISearchResult) => {
-    openProject(r.projectId, r.projectName, r.subProjectId, r.taskId);
+    if (r.type === 'memo') {
+      setActiveTab('dashboard');
+    } else {
+      openProject(r.projectId, r.projectName, r.subProjectId, r.taskId);
+    }
     setOpen(false);
-  }, [openProject]);
+  }, [openProject, setActiveTab]);
 
   const handleKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') { setOpen(false); return; }
@@ -96,7 +100,7 @@ export default function GlobalSearch() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKey}
-            placeholder={`태스크 · 프로젝트 · 워크스페이스 검색… (${mod()}P)`}
+            placeholder={`태스크 · 프로젝트 · 브레인스토밍 · 메모 검색… (${mod()}P)`}
             className="flex-1 bg-transparent text-sm text-foreground focus:outline-none"
           />
           <span className="text-[10px] text-muted-foreground/70 px-1.5 py-0.5 border border-border rounded">
@@ -130,6 +134,8 @@ export default function GlobalSearch() {
                   <span className={`px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wide ${
                     r.type === 'task' ? 'bg-primary/15 text-primary' :
                     r.type === 'project' ? 'bg-accent/15 text-accent' :
+                    r.type === 'brainstorm' ? 'bg-success/15 text-success' :
+                    r.type === 'memo' ? 'bg-muted text-muted-foreground' :
                     'bg-warning/15 text-warning'
                   }`}>
                     {r.type === 'sub-project' ? 'project' : r.type}
