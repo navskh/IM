@@ -2,8 +2,31 @@
 
 const { execSync } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 
 const isWindows = process.platform === 'win32';
+
+// Wire installed node_modules into the Next.js standalone bundle.
+// We strip .next/standalone/node_modules from the published tarball (it makes
+// npm publish fail with 502 due to the bundled native binaries — sharp etc.),
+// so the standalone server has nowhere to resolve its deps from. After install,
+// npm has placed our deps in <root>/node_modules; symlink that into the
+// standalone tree so server.js works unchanged.
+try {
+  const root = path.resolve(__dirname, '..');
+  const standaloneNm = path.join(root, '.next', 'standalone', 'node_modules');
+  const realNm = path.join(root, 'node_modules');
+
+  if (fs.existsSync(realNm) && !fs.existsSync(standaloneNm)) {
+    try {
+      fs.symlinkSync(realNm, standaloneNm, isWindows ? 'junction' : 'dir');
+    } catch {
+      // Symlink can fail on Windows without admin or on restrictive FS — fall
+      // back to a recursive copy so the bundle still resolves modules.
+      fs.cpSync(realNm, standaloneNm, { recursive: true });
+    }
+  }
+} catch { /* best-effort; bin entry still informs the user below */ }
 
 try {
   // Check if `im` is on PATH. Windows uses `where`, POSIX uses `command -v`.

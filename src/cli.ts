@@ -158,6 +158,28 @@ program
       process.exit(1);
     }
 
+    // The published tarball strips .next/standalone/node_modules to dodge a
+    // 502 from npm registry on bundles with native binaries (sharp). We wire
+    // installed deps in here on first run — npm hoisting makes the directory
+    // location unpredictable, so resolve via a known dep instead of guessing.
+    const standaloneNm = path.join(PKG_ROOT, '.next', 'standalone', 'node_modules');
+    if (!fs.existsSync(standaloneNm)) {
+      let realNm: string | null = null;
+      try {
+        const nextPkg = require.resolve('next/package.json', { paths: [PKG_ROOT] });
+        // <real_node_modules>/next/package.json → <real_node_modules>
+        realNm = path.dirname(path.dirname(nextPkg));
+      } catch {
+        console.error('\n  ⚠ Dependencies not found. Run: npm install -g idea-manager@latest\n');
+        process.exit(1);
+      }
+      try {
+        fs.symlinkSync(realNm, standaloneNm, process.platform === 'win32' ? 'junction' : 'dir');
+      } catch {
+        fs.cpSync(realNm, standaloneNm, { recursive: true });
+      }
+    }
+
     console.log(`\n  IM - Idea Manager`);
     console.log(`  Starting on http://localhost:${port}\n`);
 
