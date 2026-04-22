@@ -1,6 +1,6 @@
 {
   "name": "idea-manager",
-  "version": "2.4.5",
+  "version": "2.5.0",
   "description": "AI-powered idea & task manager for developers. Brainstorm → structured tasks → AI agent execution. CodeMirror editor with slash commands, MCP Server, Claude/Gemini/Codex support. Local-first SQLite, cross-PC Git sync.",
   "keywords": [
     "idea-manager",
