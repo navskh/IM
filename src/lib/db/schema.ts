@@ -96,6 +96,20 @@ export function initSchema(db: any): void {
   `);
 
   db.exec(`
+    CREATE TABLE IF NOT EXISTS distribution_history (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL,
+      source TEXT NOT NULL DEFAULT 'auto-distribute',
+      created_sub_project_ids TEXT NOT NULL DEFAULT '[]',
+      created_task_ids TEXT NOT NULL DEFAULT '[]',
+      summary TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      rolled_back_at TEXT,
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    );
+  `);
+
+  db.exec(`
     CREATE TABLE IF NOT EXISTS global_conversations (
       id TEXT PRIMARY KEY,
       project_id TEXT NOT NULL DEFAULT '__global__',

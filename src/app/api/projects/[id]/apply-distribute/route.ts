@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSubProject } from '@/lib/db/queries/sub-projects';
 import { createTask } from '@/lib/db/queries/tasks';
 import { getProject } from '@/lib/db/queries/projects';
+import { createDistributionHistory } from '@/lib/db/queries/distribution-history';
 import { ensureDb } from '@/lib/db';
 import type { ItemPriority } from '@/types';
 
@@ -38,6 +39,8 @@ export async function POST(
   }
 
   const results: { sub_project_id: string; sub_project_name: string; tasks_created: number }[] = [];
+  const createdSubIds: string[] = [];
+  const createdTaskIds: string[] = [];
 
   for (const dist of distributions) {
     if (!dist.tasks || dist.tasks.length === 0) continue;
@@ -50,6 +53,7 @@ export async function POST(
         name: dist.sub_project_name,
       });
       subId = sp.id;
+      createdSubIds.push(subId);
     } else {
       subId = dist.existing_sub_id;
     }
@@ -57,13 +61,14 @@ export async function POST(
     let tasksCreated = 0;
     for (const task of dist.tasks) {
       if (!task.title?.trim()) continue;
-      createTask({
+      const created = createTask({
         project_id: id,
         sub_project_id: subId,
         title: task.title.trim(),
         description: task.description || '',
         priority: task.priority || 'medium',
       });
+      createdTaskIds.push(created.id);
       tasksCreated++;
     }
 
@@ -74,5 +79,19 @@ export async function POST(
     });
   }
 
-  return NextResponse.json({ results });
+  const totalTasks = createdTaskIds.length;
+  let historyId: string | null = null;
+  if (totalTasks > 0 || createdSubIds.length > 0) {
+    const summary = `${totalTasks}개 태스크 · ${createdSubIds.length}개 신규 서브프로젝트`;
+    const history = createDistributionHistory({
+      project_id: id,
+      source: 'auto-distribute',
+      created_sub_project_ids: createdSubIds,
+      created_task_ids: createdTaskIds,
+      summary,
+    });
+    historyId = history.id;
+  }
+
+  return NextResponse.json({ results, historyId });
 }

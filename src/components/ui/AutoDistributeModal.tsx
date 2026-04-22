@@ -20,7 +20,7 @@ interface AutoDistributeModalProps {
   open: boolean;
   projectId: string;
   onClose: () => void;
-  onApplied: () => void;
+  onApplied: (result: { historyId: string | null }) => void;
 }
 
 export default function AutoDistributeModal({
@@ -84,7 +84,8 @@ export default function AutoDistributeModal({
         body: JSON.stringify({ distributions: nonEmpty }),
       });
       if (res.ok) {
-        onApplied();
+        const data = await res.json();
+        onApplied({ historyId: data.historyId ?? null });
         onClose();
       } else {
         const data = await res.json();

@@ -73,6 +73,7 @@ export default function WorkspacePanel({
   const [showAutoDistribute, setShowAutoDistribute] = useState(false);
   const [chatStates, setChatStates] = useState<Record<string, 'idle' | 'loading' | 'done'>>({});
   const [deleteToast, setDeleteToast] = useState<{ taskId: string; title: string; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const [distributeToast, setDistributeToast] = useState<{ historyId: string; timer: ReturnType<typeof setTimeout> } | null>(null);
   const syncingRef = useRef(false);
 
   // Resizable panel widths
@@ -674,7 +675,14 @@ export default function WorkspacePanel({
         open={showAutoDistribute}
         projectId={id}
         onClose={() => setShowAutoDistribute(false)}
-        onApplied={() => { loadSubProjects(); }}
+        onApplied={({ historyId }) => {
+          loadSubProjects();
+          if (historyId) {
+            if (distributeToast?.timer) clearTimeout(distributeToast.timer);
+            const timer = setTimeout(() => setDistributeToast(null), 30000);
+            setDistributeToast({ historyId, timer });
+          }
+        }}
       />
       {showAdvisor && (
         <ProjectAdvisor
@@ -696,6 +704,37 @@ export default function WorkspacePanel({
           </button>
           <button
             onClick={() => { clearTimeout(deleteToast.timer); setDeleteToast(null); }}
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            ×
+          </button>
+        </div>
+      )}
+      {distributeToast && (
+        <div
+          className="fixed bottom-16 left-1/2 -translate-x-1/2 z-50 bg-card border border-border rounded-lg shadow-xl px-4 py-2.5 flex items-center gap-3 animate-dialog-in"
+        >
+          <span className="text-xs text-muted-foreground">
+            자동 분배 적용됨
+          </span>
+          <button
+            onClick={async () => {
+              clearTimeout(distributeToast.timer);
+              const res = await fetch(
+                `/api/projects/${id}/distribution-history/${distributeToast.historyId}/rollback`,
+                { method: 'POST' },
+              );
+              if (res.ok) {
+                loadSubProjects();
+              }
+              setDistributeToast(null);
+            }}
+            className="text-xs px-2 py-1 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity"
+          >
+            분배 되돌리기
+          </button>
+          <button
+            onClick={() => { clearTimeout(distributeToast.timer); setDistributeToast(null); }}
             className="text-xs text-muted-foreground hover:text-foreground"
           >
             ×

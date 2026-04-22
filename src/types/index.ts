@@ -95,3 +95,14 @@ export interface ISubProjectWithStats extends ISubProject {
   last_activity: string | null;
   preview_tasks: { title: string; status: TaskStatus }[];
 }
+
+export interface IDistributionHistory {
+  id: string;
+  project_id: string;
+  source: string;
+  created_sub_project_ids: string[];
+  created_task_ids: string[];
+  summary: string;
+  created_at: string;
+  rolled_back_at: string | null;
+}
