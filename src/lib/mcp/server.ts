@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { getNextTask, getProjectContext, formatTaskForMcp, formatProjectForMcp } from './tools';
+import { getNextTask, getProjectContext, formatTaskForMcp, formatProjectForMcp, exportProjectAsJson } from './tools';
 import type { McpToolContext } from './tools';
 
 export async function startMcpServer(ctx: McpToolContext) {
@@ -107,6 +107,20 @@ export async function startMcpServer(ctx: McpToolContext) {
         return { content: [{ type: 'text', text: 'Task not found.' }] };
       }
       return { content: [{ type: 'text', text: `${updated.title}: completed.` }] };
+    }
+  );
+
+  // Tool 7: export-to-timo
+  server.tool(
+    'export-to-timo',
+    'Export project as TIMO-compatible JSON (project + sub-projects + tasks). Returns JSON text that can be piped to TIMO or saved to disk.',
+    { projectId: z.string().describe('Project ID') },
+    async ({ projectId }) => {
+      const json = exportProjectAsJson(ctx, projectId);
+      if (!json) {
+        return { content: [{ type: 'text', text: 'Project not found.' }] };
+      }
+      return { content: [{ type: 'text', text: json }] };
     }
   );
 

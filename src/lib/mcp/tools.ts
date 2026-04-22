@@ -64,6 +64,41 @@ export function formatTaskForMcp(task: ITask, prompt?: ITaskPrompt): string {
   return lines.join('\n');
 }
 
+export function exportProjectAsJson(ctx: McpToolContext, projectId: string): string | null {
+  const project = ctx.getProject(projectId);
+  if (!project) return null;
+
+  const subProjects = ctx.getSubProjects(projectId);
+  const subById = new Map(subProjects.map(sp => [sp.id, sp]));
+  const tasks = ctx.getTasksByProject(projectId);
+
+  const payload = {
+    format_version: 1,
+    source: 'idea-manager',
+    exported_at: new Date().toISOString(),
+    project: {
+      name: project.name,
+      description: project.description,
+    },
+    sub_projects: subProjects.map(sp => ({
+      name: sp.name,
+      description: sp.description,
+      sort_order: sp.sort_order,
+    })),
+    tasks: tasks.map(t => ({
+      sub_project_name: subById.get(t.sub_project_id)?.name ?? '',
+      title: t.title,
+      description: t.description,
+      status: t.status,
+      priority: t.priority,
+      tags: t.tags,
+      sort_order: t.sort_order,
+    })),
+  };
+
+  return JSON.stringify(payload, null, 2);
+}
+
 export function formatProjectForMcp(
   subProjects: ISubProject[],
   tasks: ITask[],
